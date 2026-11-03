@@ -135,22 +135,16 @@ return [
 
         /*
         |--------------------------------------------------------------------------
-        | CPC HR Database
+        | CPC HR Database — SQL Server
         |--------------------------------------------------------------------------
         */
 
         'sqlsrv' => [
             'driver' => 'sqlsrv',
             'url' => env('CPC_SQLSRV_URL'),
-            'host' => env(
-                'CPC_SQLSRV_HOST',
-                '192.168.100.71'
-            ),
+            'host' => env('CPC_SQLSRV_HOST'),
             'port' => env('CPC_SQLSRV_PORT', '1433'),
-            'database' => env(
-                'CPC_SQLSRV_DATABASE',
-                'CPC_HAPIS_JAN'
-            ),
+            'database' => env('CPC_SQLSRV_DATABASE'),
             'username' => env('CPC_SQLSRV_USERNAME'),
             'password' => env('CPC_SQLSRV_PASSWORD'),
             'charset' => 'utf8',
@@ -165,41 +159,49 @@ return [
 
         /*
         |--------------------------------------------------------------------------
-        | CPC Help Desk and Asset Management Database
+        | CPC Help Desk and Asset Management Database — SQL Server
         |--------------------------------------------------------------------------
         */
 
         'sqlsrv_assets' => [
             'driver' => 'sqlsrv',
             'url' => env('CPC_ASSET_SQLSRV_URL'),
+
             'host' => env(
-                'CPC_SQLSRV_HOST',
-                '192.168.100.71'
+                'CPC_ASSET_SQLSRV_HOST',
+                env('CPC_SQLSRV_HOST')
             ),
-            'port' => env('CPC_SQLSRV_PORT', '1433'),
-            'database' => env(
-                'CPC_ASSET_SQLSRV_DATABASE',
-                'CPC_HelpDesk_And_Asset_Management'
+
+            'port' => env(
+                'CPC_ASSET_SQLSRV_PORT',
+                env('CPC_SQLSRV_PORT', '1433')
             ),
+
+            'database' => env('CPC_ASSET_SQLSRV_DATABASE'),
+
             'username' => env(
                 'CPC_ASSET_SQLSRV_USERNAME',
                 env('CPC_SQLSRV_USERNAME')
             ),
+
             'password' => env(
                 'CPC_ASSET_SQLSRV_PASSWORD',
                 env('CPC_SQLSRV_PASSWORD')
             ),
+
             'charset' => 'utf8',
             'prefix' => '',
             'prefix_indexes' => true,
+
             'encrypt' => env('CPC_SQLSRV_ENCRYPT', 'yes'),
+
             'trust_server_certificate' => env(
                 'CPC_SQLSRV_TRUST_SERVER_CERTIFICATE',
                 'false'
             ),
         ],
 
-    ], // End database connections
+    ],
 
     /*
     |--------------------------------------------------------------------------
@@ -224,12 +226,14 @@ return [
 
         'options' => [
             'cluster' => env('REDIS_CLUSTER', 'redis'),
+
             'prefix' => env(
                 'REDIS_PREFIX',
                 Str::slug(
                     (string) env('APP_NAME', 'laravel')
                 ) . '-database-'
             ),
+
             'persistent' => env('REDIS_PERSISTENT', false),
         ],
 
@@ -241,10 +245,12 @@ return [
             'port' => env('REDIS_PORT', '6379'),
             'database' => env('REDIS_DB', '0'),
             'max_retries' => env('REDIS_MAX_RETRIES', 3),
+
             'backoff_algorithm' => env(
                 'REDIS_BACKOFF_ALGORITHM',
                 'decorrelated_jitter'
             ),
+
             'backoff_base' => env('REDIS_BACKOFF_BASE', 100),
             'backoff_cap' => env('REDIS_BACKOFF_CAP', 1000),
         ],
@@ -257,10 +263,12 @@ return [
             'port' => env('REDIS_PORT', '6379'),
             'database' => env('REDIS_CACHE_DB', '1'),
             'max_retries' => env('REDIS_MAX_RETRIES', 3),
+
             'backoff_algorithm' => env(
                 'REDIS_BACKOFF_ALGORITHM',
                 'decorrelated_jitter'
             ),
+
             'backoff_base' => env('REDIS_BACKOFF_BASE', 100),
             'backoff_cap' => env('REDIS_BACKOFF_CAP', 1000),
         ],
