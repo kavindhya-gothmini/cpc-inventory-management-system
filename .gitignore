@@ -50,3 +50,7 @@ Homestead.yaml
 # Temporary files
 *.tmp
 *.bak
+# Temporary development files
+employee-dashboard-*.txt
+qa_cpc_mappings.php
+*.backup-*
