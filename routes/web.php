@@ -430,7 +430,12 @@ Route::prefix('admin')
         |--------------------------------------------------------------------------
         */
 
-        Route::resource('branches', BranchController::class);
+      Route::get('branches', [BranchController::class, 'index'])
+    ->name('branches.index');
+
+Route::get('branches/{locationId}', [BranchController::class, 'show'])
+    ->whereNumber('locationId')
+    ->name('branches.show');
         Route::resource('departments', DepartmentController::class);
         Route::resource('function-units', FunctionUnitController::class);
     });

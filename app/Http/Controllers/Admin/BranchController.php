@@ -3,160 +3,105 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Branch;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class BranchController extends Controller
 {
     /**
-     * Display a listing of branches.
-     *
-     * All authenticated roles can view branches.
+     * Display the live CPC branch directory.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $branches = Branch::latest()->paginate(10);
+        $connection = DB::connection('sqlsrv');
 
-        return view('admin.branches.index', compact('branches'));
-    }
+        $sourceQuery = $connection
+            ->table('TBL_HR_MAS_LOCATION');
 
-    /**
-     * Show the form for creating a new branch.
-     *
-     * Super Admin only.
-     */
-    public function create()
-    {
-        $this->ensureSuperAdmin();
+        $totalBranches = (clone $sourceQuery)->count();
 
-        return view('admin.branches.create');
-    }
+        $activeBranches = (clone $sourceQuery)
+            ->where('Is_Available', 1)
+            ->count();
 
-    /**
-     * Store a newly created branch.
-     *
-     * Super Admin only.
-     */
-    public function store(Request $request)
-    {
-        $this->ensureSuperAdmin();
+        $inactiveBranches = (clone $sourceQuery)
+            ->where(function ($query) {
+                $query->where('Is_Available', '<>', 1)
+                    ->orWhereNull('Is_Available');
+            })
+            ->count();
 
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
+        $branchesQuery = (clone $sourceQuery)
+            ->select([
+                'Location_Id',
+                'Location_Name',
+                'Is_Available',
+            ]);
 
-            // Branch code must be exactly 4 numeric digits
-            // and must be unique.
-            'code' => [
-                'required',
-                'digits:4',
-                'unique:branches,code',
-            ],
+        // Search by CPC location name or location ID.
+        $search = trim((string) $request->query('search', ''));
 
-            'location' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
-            'is_active' => 'nullable|boolean',
-        ]);
+        if ($search !== '') {
+            $branchesQuery->where(function ($query) use ($search) {
+                $query->where(
+                    'Location_Name',
+                    'like',
+                    '%' . $search . '%'
+                );
 
-        $validated['is_active'] = $request->boolean('is_active');
-
-        Branch::create($validated);
-
-        return redirect()
-            ->route('admin.branches.index')
-            ->with('success', 'Branch created successfully.');
-    }
-
-    /**
-     * Display the specified branch.
-     *
-     * All authenticated roles can view a branch.
-     */
-    public function show(Branch $branch)
-    {
-        $branch->load([
-            'departments',
-            'employees',
-            'items',
-        ]);
-
-        return view('admin.branches.show', compact('branch'));
-    }
-
-    /**
-     * Show the form for editing the specified branch.
-     *
-     * Super Admin only.
-     */
-    public function edit(Branch $branch)
-    {
-        $this->ensureSuperAdmin();
-
-        return view('admin.branches.edit', compact('branch'));
-    }
-
-    /**
-     * Update the specified branch.
-     *
-     * Super Admin only.
-     */
-    public function update(Request $request, Branch $branch)
-    {
-        $this->ensureSuperAdmin();
-
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-
-            // Branch code must be exactly 4 numeric digits
-            // and must be unique except for the current branch.
-            'code' => [
-                'required',
-                'digits:4',
-                'unique:branches,code,' . $branch->id,
-            ],
-
-            'location' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
-            'is_active' => 'nullable|boolean',
-        ]);
-
-        $validated['is_active'] = $request->boolean('is_active');
-
-        $branch->update($validated);
-
-        return redirect()
-            ->route('admin.branches.index')
-            ->with('success', 'Branch updated successfully.');
-    }
-
-    /**
-     * Deactivate the specified branch.
-     *
-     * Super Admin only.
-     */
-    public function destroy(Branch $branch)
-    {
-        $this->ensureSuperAdmin();
-
-        $branch->update([
-            'is_active' => false,
-        ]);
-
-        return redirect()
-            ->route('admin.branches.index')
-            ->with('success', 'Branch deactivated successfully.');
-    }
-
-    /**
-     * Ensure the current user is a Super Admin.
-     *
-     * Only Super Admin can manage branch master data.
-     */
-    private function ensureSuperAdmin(): void
-    {
-        $user = auth()->user();
-
-        if (!$user || $user->role !== 'super_admin') {
-            abort(403, 'Only Super Admin can manage branches.');
+                if (ctype_digit($search)) {
+                    $query->orWhere(
+                        'Location_Id',
+                        (int) $search
+                    );
+                }
+            });
         }
+
+        // Filter by CPC availability.
+        $status = $request->query('status', 'all');
+
+        if ($status === 'active') {
+            $branchesQuery->where('Is_Available', 1);
+        } elseif ($status === 'inactive') {
+            $branchesQuery->where(function ($query) {
+                $query->where('Is_Available', '<>', 1)
+                    ->orWhereNull('Is_Available');
+            });
+        }
+
+        $branches = $branchesQuery
+            ->orderBy('Location_Id')
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('admin.branches.index', compact(
+            'branches',
+            'totalBranches',
+            'activeBranches',
+            'inactiveBranches',
+            'search',
+            'status'
+        ));
+    }
+
+    /**
+     * Display details of one CPC location.
+     */
+    public function show($locationId)
+    {
+        $location = DB::connection('sqlsrv')
+            ->table('TBL_HR_MAS_LOCATION')
+            ->select([
+                'Location_Id',
+                'Location_Name',
+                'Is_Available',
+            ])
+            ->where('Location_Id', $locationId)
+            ->first();
+
+        abort_if(!$location, 404, 'CPC location not found.');
+
+        return view('admin.branches.show', compact('location'));
     }
 }

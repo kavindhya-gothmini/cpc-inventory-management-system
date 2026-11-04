@@ -1,1486 +1,895 @@
+
 @extends('layouts.admin')
 
-@section('title', 'Branch Management | CPC Inventory Management System')
+@section('title', 'CPC Branch Directory | CPC Inventory Management System')
 
-@section('page-heading', 'Branch Management')
+@section('page-heading', 'CPC Branch Directory')
 
 @section('content')
 
-@php
-/*
-|--------------------------------------------------------------------------
-| Branch Page Role Access
-|--------------------------------------------------------------------------
-| SUPER ADMIN = FULL MANAGEMENT ACCESS
-| ADMIN       = VIEW + SEARCH ONLY
-| EMPLOYEE    = VIEW + SEARCH ONLY
-|--------------------------------------------------------------------------
-*/
-
-$currentUser = auth()->user();
-
-$isSuperAdmin = $currentUser
-    && $currentUser->role === 'super_admin';
-
-$isAdmin = $currentUser
-    && $currentUser->role === 'admin';
-
-$isEmployee = $currentUser
-    && $currentUser->role === 'employee';
-
-/*
- * Only Super Admin can manage Branch master data.
- *
- * Admin and Employee:
- * - View
- * - Search
- *
- * Super Admin:
- * - View
- * - Search
- * - Add
- * - Edit
- * - Deactivate
- * - Reactivate
- */
-$canManageBranches = $isSuperAdmin;
-
-$isReadOnlyUser = $isAdmin || $isEmployee;
-@endphp
-
 <style>
+    .cpc-directory {
+        --cpc-primary: #155eef;
+        --cpc-primary-dark: #1249bd;
+        --cpc-text: #172b4d;
+        --cpc-muted: #667085;
+        --cpc-border: #e5eaf1;
+        --cpc-surface: #ffffff;
 
-/* =========================================================
-   BRANCH MANAGEMENT
-========================================================= */
-
-.branch-page {
-    max-width: 1600px;
-    margin: 0 auto;
-    padding-bottom: 30px;
-}
-
-
-/* =========================================================
-   BREADCRUMB
-========================================================= */
-
-.branch-breadcrumb {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 16px;
-    color: #98a2b3;
-    font-size: 11px;
-}
-
-.branch-breadcrumb .current {
-    color: #344054;
-    font-weight: 600;
-}
-
-.branch-breadcrumb i {
-    font-size: 8px;
-    color: #b5bdc9;
-}
-
-
-/* =========================================================
-   PAGE HEADER
-========================================================= */
-
-.branch-header {
-    position: relative;
-    overflow: hidden;
-
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-
-    gap: 25px;
-
-    padding: 24px 27px;
-
-    margin-bottom: 20px;
-
-    background:
-        linear-gradient(
-            135deg,
-            #ffffff 0%,
-            #f8fbff 65%,
-            #eef6ff 100%
-        );
-
-    border: 1px solid #e2e8f0;
-    border-radius: 16px;
-
-    box-shadow:
-        0 5px 22px rgba(31, 45, 61, 0.045);
-}
-
-.branch-header::after {
-    content: "";
-
-    position: absolute;
-
-    width: 190px;
-    height: 190px;
-
-    right: -75px;
-    top: -95px;
-
-    border-radius: 50%;
-
-    background: rgba(47, 128, 237, 0.055);
-
-    pointer-events: none;
-}
-
-.branch-header-content {
-    position: relative;
-    z-index: 2;
-
-    display: flex;
-    align-items: center;
-
-    gap: 15px;
-}
-
-.branch-header-icon {
-    width: 55px;
-    height: 55px;
-
-    flex-shrink: 0;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    border-radius: 14px;
-
-    background:
-        linear-gradient(
-            135deg,
-            #2f80ed,
-            #4c96ee
-        );
-
-    color: #ffffff;
-
-    font-size: 23px;
-
-    box-shadow:
-        0 7px 18px rgba(47, 128, 237, 0.20);
-}
-
-.branch-header-text h1 {
-    margin: 0;
-
-    color: #172033;
-
-    font-size: 23px;
-    font-weight: 700;
-    letter-spacing: -0.2px;
-}
-
-.branch-header-text p {
-    margin: 5px 0 0;
-
-    color: #7d8798;
-
-    font-size: 12px;
-}
-
-.branch-header-context {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-
-    margin-top: 8px;
-
-    padding: 5px 9px;
-
-    border-radius: 6px;
-
-    background: #edf5ff;
-
-    color: #2f70c9;
-
-    font-size: 10px;
-    font-weight: 600;
-}
-
-.branch-header-action {
-    position: relative;
-    z-index: 3;
-}
-
-.branch-add-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-
-    gap: 7px;
-
-    min-height: 39px;
-
-    padding: 0 15px;
-
-    border-radius: 8px;
-
-    font-size: 12px;
-    font-weight: 600;
-
-    box-shadow:
-        0 5px 13px rgba(47, 128, 237, 0.15);
-}
-
-
-/* =========================================================
-   READ-ONLY ACTIONS
-========================================================= */
-
-.branch-disabled-action {
-    opacity: 0.48;
-    cursor: not-allowed !important;
-    filter: grayscale(12%);
-    transform: none !important;
-    box-shadow: none !important;
-    user-select: none;
-}
-
-.branch-disabled-action:hover,
-.branch-disabled-action:focus,
-.branch-disabled-action:active {
-    opacity: 0.48;
-    cursor: not-allowed !important;
-    transform: none !important;
-    box-shadow: none !important;
-}
-
-.branch-readonly-notice {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-
-    margin-top: 12px;
-
-    padding: 9px 12px;
-
-    border: 1px solid #dbe7f8;
-    border-radius: 9px;
-
-    background: #f5f9ff;
-
-    color: #55708f;
-
-    font-size: 11px;
-    line-height: 1.5;
-}
-
-.branch-readonly-notice i {
-    color: #2f80ed;
-    font-size: 14px;
-}
-
-
-/* =========================================================
-   KPI SECTION
-========================================================= */
-
-.branch-kpi {
-    margin-bottom: 20px;
-}
-
-.branch-stat-card {
-    position: relative;
-    overflow: hidden;
-
-    height: 100%;
-    min-height: 124px;
-
-    padding: 18px;
-
-    background: #ffffff;
-
-    border: 1px solid #e4e9f0;
-    border-radius: 13px;
-
-    box-shadow:
-        0 4px 18px rgba(31, 45, 61, 0.035);
-
-    transition:
-        transform 0.2s ease,
-        box-shadow 0.2s ease,
-        border-color 0.2s ease;
-}
-
-.branch-stat-card:hover {
-    transform: translateY(-2px);
-
-    border-color: #d7e2ef;
-
-    box-shadow:
-        0 8px 24px rgba(31, 45, 61, 0.07);
-}
-
-.branch-stat-card::after {
-    content: "";
-
-    position: absolute;
-
-    width: 95px;
-    height: 95px;
-
-    right: -40px;
-    bottom: -45px;
-
-    border-radius: 50%;
-
-    background: rgba(47, 128, 237, 0.035);
-}
-
-.branch-stat-content {
-    position: relative;
-    z-index: 2;
-
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-
-    gap: 12px;
-}
-
-.branch-stat-label {
-    margin-bottom: 7px;
-
-    color: #8a94a6;
-
-    font-size: 10px;
-    font-weight: 700;
-
-    text-transform: uppercase;
-    letter-spacing: 0.65px;
-}
-
-.branch-stat-number {
-    color: #172033;
-
-    font-size: 27px;
-    font-weight: 700;
-
-    line-height: 1;
-}
-
-.branch-stat-description {
-    display: block;
-
-    margin-top: 8px;
-
-    color: #9aa3b2;
-
-    font-size: 10px;
-}
-
-.branch-stat-icon {
-    width: 42px;
-    height: 42px;
-
-    flex-shrink: 0;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    border-radius: 11px;
-
-    font-size: 17px;
-}
-
-.stat-blue {
-    background: #eaf3ff;
-    color: #2f80ed;
-}
-
-.stat-green {
-    background: #e9f7ef;
-    color: #218653;
-}
-
-.stat-red {
-    background: #ffebeb;
-    color: #c0392b;
-}
-
-.stat-purple {
-    background: #f1edff;
-    color: #7357c7;
-}
-
-
-/* =========================================================
-   MAIN CARD
-========================================================= */
-
-.branch-content-card {
-    overflow: hidden;
-
-    background: #ffffff;
-
-    border: 1px solid #e2e7ee;
-    border-radius: 15px;
-
-    box-shadow:
-        0 5px 22px rgba(31, 45, 61, 0.04);
-}
-
-
-/* =========================================================
-   TABLE HEADER
-========================================================= */
-
-.branch-toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-
-    gap: 18px;
-
-    padding: 18px 20px;
-
-    border-bottom: 1px solid #edf0f4;
-}
-
-.branch-toolbar-title {
-    display: flex;
-    align-items: center;
-
-    gap: 11px;
-}
-
-.branch-toolbar-title-icon {
-    width: 34px;
-    height: 34px;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    border-radius: 8px;
-
-    background: #edf5ff;
-    color: #2f80ed;
-
-    font-size: 14px;
-}
-
-.branch-toolbar-title h5 {
-    margin: 0;
-
-    color: #172033;
-
-    font-size: 14px;
-    font-weight: 700;
-}
-
-.branch-toolbar-title p {
-    margin: 3px 0 0;
-
-    color: #929bab;
-
-    font-size: 10px;
-}
-
-
-/* =========================================================
-   TOOLBAR ACTIONS
-========================================================= */
-
-.branch-toolbar-actions {
-    display: flex;
-    align-items: center;
-
-    gap: 8px;
-}
-
-.branch-search {
-    position: relative;
-
-    width: 245px;
-}
-
-.branch-search input {
-    width: 100%;
-    height: 38px;
-
-    padding:
-        0 12px 0 36px;
-
-    background: #f9fafc;
-
-    border: 1px solid #dfe5ed;
-    border-radius: 8px;
-
-    color: #344054;
-
-    font-size: 11px;
-
-    outline: none;
-
-    transition:
-        border-color 0.2s ease,
-        box-shadow 0.2s ease,
-        background 0.2s ease;
-}
-
-.branch-search input::placeholder {
-    color: #a1a9b6;
-}
-
-.branch-search input:focus {
-    background: #ffffff;
-
-    border-color: #2f80ed;
-
-    box-shadow:
-        0 0 0 3px rgba(47, 128, 237, 0.08);
-}
-
-.branch-search i {
-    position: absolute;
-
-    left: 12px;
-    top: 12px;
-
-    color: #98a2b3;
-
-    font-size: 12px;
-
-    pointer-events: none;
-}
-
-.branch-filter {
-    height: 38px;
-
-    min-width: 125px;
-
-    padding: 0 30px 0 10px;
-
-    background: #f9fafc;
-
-    border: 1px solid #dfe5ed;
-    border-radius: 8px;
-
-    color: #475467;
-
-    font-size: 11px;
-
-    outline: none;
-
-    cursor: pointer;
-}
-
-.branch-filter:focus {
-    border-color: #2f80ed;
-
-    box-shadow:
-        0 0 0 3px rgba(47, 128, 237, 0.07);
-}
-
-.branch-quick-add {
-    width: 38px;
-    height: 38px;
-
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-
-    border-radius: 8px;
-
-    font-size: 13px;
-}
-
-
-/* =========================================================
-   TABLE
-========================================================= */
-
-.branch-table-wrapper {
-    width: 100%;
-
-    overflow-x: auto;
-}
-
-.branch-table {
-    width: 100%;
-    min-width: 920px;
-
-    border-collapse: collapse;
-}
-
-.branch-table thead th {
-    padding: 11px 18px;
-
-    background: #f8fafc;
-
-    border-bottom: 1px solid #e4e9ef;
-
-    color: #7b8597;
-
-    font-size: 9px;
-    font-weight: 700;
-
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-
-    white-space: nowrap;
-}
-
-.branch-table tbody td {
-    padding: 14px 18px;
-
-    border-bottom: 1px solid #eef1f5;
-
-    color: #344054;
-
-    font-size: 11px;
-
-    vertical-align: middle;
-}
-
-.branch-table tbody tr {
-    transition:
-        background 0.15s ease,
-        box-shadow 0.15s ease;
-}
-
-.branch-table tbody tr:hover {
-    background: #f9fbff;
-
-    box-shadow:
-        inset 3px 0 0 #2f80ed;
-}
-
-.branch-table tbody tr:last-child td {
-    border-bottom: 0;
-}
-
-
-/* =========================================================
-   NUMBER
-========================================================= */
-
-.branch-number {
-    color: #98a2b3;
-
-    font-size: 10px;
-    font-weight: 600;
-}
-
-
-/* =========================================================
-   BRANCH IDENTITY
-========================================================= */
-
-.branch-identity {
-    display: flex;
-    align-items: center;
-
-    gap: 11px;
-}
-
-.branch-avatar {
-    width: 38px;
-    height: 38px;
-
-    flex-shrink: 0;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    border-radius: 10px;
-
-    background:
-        linear-gradient(
-            135deg,
-            #edf5ff,
-            #e4f0ff
-        );
-
-    color: #2f80ed;
-
-    font-size: 14px;
-}
-
-.branch-name {
-    color: #1f2937;
-
-    font-size: 12px;
-    font-weight: 650;
-
-    line-height: 1.35;
-}
-
-.branch-type {
-    margin-top: 3px;
-
-    color: #9aa3b2;
-
-    font-size: 9px;
-}
-
-
-/* =========================================================
-   CODE
-========================================================= */
-
-.branch-code {
-    display: inline-flex;
-    align-items: center;
-
-    padding: 5px 8px;
-
-    background: #f5f7fa;
-
-    border: 1px solid #e5e9ef;
-    border-radius: 5px;
-
-    color: #475467;
-
-    font-family: Consolas, Monaco, monospace;
-
-    font-size: 10px;
-    font-weight: 600;
-}
-
-.no-value {
-    color: #a5adba;
-
-    font-size: 10px;
-}
-
-
-/* =========================================================
-   LOCATION
-========================================================= */
-
-.branch-location {
-    display: flex;
-    align-items: center;
-
-    gap: 7px;
-
-    color: #475467;
-
-    font-size: 11px;
-}
-
-.branch-location i {
-    color: #2f80ed;
-
-    font-size: 12px;
-}
-
-
-/* =========================================================
-   STATUS
-========================================================= */
-
-.branch-status {
-    display: inline-flex;
-    align-items: center;
-
-    gap: 6px;
-
-    padding: 5px 9px;
-
-    border-radius: 20px;
-
-    font-size: 9px;
-    font-weight: 700;
-}
-
-.branch-status.active {
-    background: #e9f7ef;
-    color: #218653;
-}
-
-.branch-status.inactive {
-    background: #ffebeb;
-    color: #c0392b;
-}
-
-.status-dot {
-    width: 6px;
-    height: 6px;
-
-    border-radius: 50%;
-
-    background: currentColor;
-}
-
-
-/* =========================================================
-   ACTIONS
-========================================================= */
-
-.branch-actions {
-    display: flex;
-    align-items: center;
-
-    gap: 5px;
-}
-
-.branch-action {
-    width: 30px;
-    height: 30px;
-
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-
-    border-radius: 7px;
-
-    background: #ffffff;
-
-    font-size: 11px;
-
-    transition:
-        transform 0.15s ease,
-        background 0.15s ease,
-        border-color 0.15s ease;
-}
-
-.branch-action:hover {
-    transform: translateY(-1px);
-}
-
-.branch-action-view {
-    border: 1px solid #cfe0f8;
-    color: #2f80ed;
-}
-
-.branch-action-view:hover {
-    background: #eaf3ff;
-}
-
-.branch-action-edit {
-    border: 1px solid #d9dee7;
-    color: #667085;
-}
-
-.branch-action-edit:hover {
-    background: #f4f6f9;
-}
-
-.branch-action-danger {
-    border: 1px solid #f0caca;
-    color: #c0392b;
-}
-
-.branch-action-danger:hover {
-    background: #fff1f1;
-}
-
-.branch-action-success {
-    border: 1px solid #c7e6d3;
-    color: #218653;
-}
-
-.branch-action-success:hover {
-    background: #eefaf3;
-}
-
-
-/* =========================================================
-   SEARCH EMPTY
-========================================================= */
-
-.search-empty {
-    display: none;
-
-    text-align: center;
-
-    padding: 55px 20px;
-
-    color: #8b96a8;
-}
-
-.search-empty-icon {
-    width: 58px;
-    height: 58px;
-
-    margin: 0 auto 14px;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    border-radius: 15px;
-
-    background: #f4f6f9;
-
-    color: #98a2b3;
-
-    font-size: 22px;
-}
-
-.search-empty strong {
-    display: block;
-
-    margin-bottom: 5px;
-
-    color: #475467;
-
-    font-size: 13px;
-}
-
-.search-empty span {
-    font-size: 10px;
-}
-
-
-/* =========================================================
-   TABLE FOOTER
-========================================================= */
-
-.branch-table-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-
-    gap: 15px;
-
-    padding: 14px 18px;
-
-    border-top: 1px solid #edf0f4;
-
-    background: #ffffff;
-}
-
-.branch-record-count {
-    color: #8b96a8;
-
-    font-size: 10px;
-}
-
-.branch-record-count strong {
-    color: #475467;
-}
-
-
-/* =========================================================
-   PAGINATION
-========================================================= */
-
-.branch-table-footer nav {
-    margin: 0;
-}
-
-.branch-table-footer .pagination {
-    margin: 0;
-    gap: 3px;
-}
-
-.branch-table-footer .page-link {
-    min-width: 30px;
-    height: 30px;
-
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-
-    padding: 0 8px;
-
-    border: 1px solid #e1e6ed;
-
-    border-radius: 6px !important;
-
-    color: #667085;
-
-    background: #ffffff;
-
-    font-size: 10px;
-}
-
-.branch-table-footer .page-item.active .page-link {
-    background: #2f80ed;
-
-    border-color: #2f80ed;
-
-    color: #ffffff;
-}
-
-.branch-table-footer .page-link:hover {
-    background: #f4f8ff;
-
-    border-color: #cfe0f8;
-
-    color: #2f80ed;
-}
-
-
-/* =========================================================
-   EMPTY DATABASE STATE
-========================================================= */
-
-.branch-empty {
-    text-align: center;
-
-    padding: 75px 20px;
-}
-
-.branch-empty-icon {
-    width: 82px;
-    height: 82px;
-
-    margin: 0 auto 18px;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    border-radius: 22px;
-
-    background: #edf5ff;
-
-    color: #2f80ed;
-
-    font-size: 32px;
-
-    box-shadow:
-        0 9px 22px rgba(47, 128, 237, 0.07);
-}
-
-.branch-empty h4 {
-    margin: 0 0 7px;
-
-    color: #344054;
-
-    font-size: 16px;
-    font-weight: 700;
-}
-
-.branch-empty p {
-    max-width: 440px;
-
-    margin: 0 auto 20px;
-
-    color: #8b96a8;
-
-    font-size: 11px;
-
-    line-height: 1.7;
-}
-
-
-/* =========================================================
-   RESPONSIVE
-========================================================= */
-
-@media (max-width: 992px) {
-
-    .branch-header {
-        align-items: flex-start;
-        flex-direction: column;
-    }
-
-    .branch-header-action {
         width: 100%;
+        max-width: 1600px;
+        margin: 0 auto;
+        padding: 4px 0 32px;
+        color: var(--cpc-text);
     }
 
-    .branch-add-button {
+    .cpc-directory *,
+    .cpc-directory *::before,
+    .cpc-directory *::after {
+        box-sizing: border-box;
+    }
+
+    /* PAGE HEADER */
+
+    .cpc-page-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 25px 27px;
+        margin-bottom: 22px;
+        background: linear-gradient(115deg, #ffffff 0%, #f2f7ff 100%);
+        border: 1px solid #e3eaf5;
+        border-radius: 14px;
+        box-shadow: 0 2px 8px rgba(16, 24, 40, .025);
+    }
+
+    .cpc-page-heading {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        min-width: 0;
+    }
+
+    .cpc-heading-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 54px;
+        width: 54px;
+        height: 54px;
+        color: #ffffff;
+        font-size: 23px;
+        background: linear-gradient(145deg, #2674ed, #1553c7);
+        border-radius: 12px;
+        box-shadow: 0 5px 12px rgba(21, 94, 239, .16);
+    }
+
+    .cpc-heading-text {
+        min-width: 0;
+    }
+
+    .cpc-heading-text h1 {
+        margin: 0;
+        color: #172b4d;
+        font-size: 21px;
+        font-weight: 750;
+        letter-spacing: -.45px;
+        line-height: 1.35;
+    }
+
+    .cpc-heading-text p {
+        margin: 5px 0 0;
+        color: #667085;
+        font-size: 12px;
+        line-height: 1.6;
+    }
+
+    .cpc-source-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        margin-top: 10px;
+        padding: 6px 10px;
+        color: #176b45;
+        background: #eaf7f0;
+        border: 1px solid #d5efdf;
+        border-radius: 6px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: .15px;
+    }
+
+    .cpc-source-indicator i {
+        font-size: 12px;
+    }
+
+    .cpc-header-reference {
+        flex-shrink: 0;
+        color: #8792a5;
+        font-size: 10px;
+        text-align: right;
+    }
+
+    .cpc-header-reference strong {
+        display: block;
+        margin-bottom: 4px;
+        color: #475467;
+        font-size: 11px;
+        font-weight: 700;
+    }
+
+    /* STATISTICS */
+
+    .cpc-stat-card {
+        position: relative;
+        height: 100%;
+        min-height: 128px;
+        padding: 19px 20px;
+        overflow: hidden;
+        background: #ffffff;
+        border: 1px solid var(--cpc-border);
+        border-radius: 12px;
+        box-shadow: 0 2px 7px rgba(16, 24, 40, .025);
+        transition: border-color .2s ease, box-shadow .2s ease;
+    }
+
+    .cpc-stat-card:hover {
+        border-color: #cbd9ee;
+        box-shadow: 0 5px 15px rgba(16, 24, 40, .055);
+    }
+
+    .cpc-stat-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .cpc-stat-label {
+        color: #667085;
+        font-size: 10px;
+        font-weight: 750;
+        letter-spacing: .65px;
+        text-transform: uppercase;
+    }
+
+    .cpc-stat-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 37px;
+        height: 37px;
+        border-radius: 9px;
+        font-size: 16px;
+    }
+
+    .cpc-stat-icon.total {
+        color: #155eef;
+        background: #edf4ff;
+    }
+
+    .cpc-stat-icon.available {
+        color: #168653;
+        background: #eaf7f0;
+    }
+
+    .cpc-stat-icon.unavailable {
+        color: #d04444;
+        background: #fff0ef;
+    }
+
+    .cpc-stat-number {
+        margin-top: 12px;
+        color: #172b4d;
+        font-size: 29px;
+        font-weight: 750;
+        line-height: 1.1;
+        letter-spacing: -.7px;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .cpc-stat-description {
+        display: block;
+        margin-top: 7px;
+        color: #98a2b3;
+        font-size: 10px;
+    }
+
+    /* DIRECTORY CARD */
+
+    .cpc-directory-card {
+        overflow: hidden;
+        background: var(--cpc-surface);
+        border: 1px solid var(--cpc-border);
+        border-radius: 13px;
+        box-shadow: 0 2px 9px rgba(16, 24, 40, .03);
+    }
+
+    .cpc-directory-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 19px 21px;
+        border-bottom: 1px solid #edf0f4;
+    }
+
+    .cpc-directory-title {
+        min-width: 0;
+    }
+
+    .cpc-directory-title h5 {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        margin: 0;
+        color: #253858;
+        font-size: 14px;
+        font-weight: 750;
+    }
+
+    .cpc-directory-title h5 i {
+        color: var(--cpc-primary);
+        font-size: 15px;
+    }
+
+    .cpc-directory-title p {
+        margin: 5px 0 0;
+        color: #98a2b3;
+        font-size: 10px;
+    }
+
+    /* SEARCH AND FILTER */
+
+    .cpc-directory-filters {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 9px;
+    }
+
+    .cpc-search-wrapper {
+        position: relative;
+    }
+
+    .cpc-search-wrapper i {
+        position: absolute;
+        top: 50%;
+        left: 12px;
+        z-index: 1;
+        color: #98a2b3;
+        font-size: 13px;
+        transform: translateY(-50%);
+        pointer-events: none;
+    }
+
+    .cpc-search-input,
+    .cpc-status-select {
+        height: 39px;
+        color: #344054;
+        background: #ffffff;
+        border: 1px solid #dce3ed;
+        border-radius: 7px;
+        outline: none;
+        font-family: inherit;
+        font-size: 11px;
+        transition: border-color .2s ease, box-shadow .2s ease;
+    }
+
+    .cpc-search-input {
+        width: 245px;
+        padding: 0 12px 0 35px;
+    }
+
+    .cpc-status-select {
+        min-width: 140px;
+        padding: 0 30px 0 11px;
+        cursor: pointer;
+    }
+
+    .cpc-search-input:focus,
+    .cpc-status-select:focus {
+        border-color: #84adff;
+        box-shadow: 0 0 0 3px rgba(21, 94, 239, .09);
+    }
+
+    .cpc-filter-button,
+    .cpc-clear-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        height: 39px;
+        padding: 0 14px;
+        border-radius: 7px;
+        font-size: 11px;
+        font-weight: 650;
+        text-decoration: none;
+        transition: all .2s ease;
+        white-space: nowrap;
+    }
+
+    .cpc-filter-button {
+        color: #ffffff;
+        background: #155eef;
+        border: 1px solid #155eef;
+    }
+
+    .cpc-filter-button:hover {
+        color: #ffffff;
+        background: #1249bd;
+        border-color: #1249bd;
+    }
+
+    .cpc-clear-button {
+        color: #475467;
+        background: #ffffff;
+        border: 1px solid #dce3ed;
+    }
+
+    .cpc-clear-button:hover {
+        color: #155eef;
+        background: #f5f8ff;
+        border-color: #b8cef5;
+    }
+
+    /* TABLE */
+
+    .cpc-table-responsive {
         width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
 
-    .branch-toolbar {
-        align-items: flex-start;
-        flex-direction: column;
-    }
-
-    .branch-toolbar-actions {
+    .cpc-location-table {
         width: 100%;
+        min-width: 690px;
+        border-collapse: collapse;
     }
 
-    .branch-search {
-        flex: 1;
-        width: auto;
+    .cpc-location-table thead th {
+        padding: 13px 20px;
+        color: #7b8798;
+        background: #f8fafc;
+        border-bottom: 1px solid #e9edf3;
+        font-size: 9px;
+        font-weight: 750;
+        text-align: left;
+        text-transform: uppercase;
+        letter-spacing: .65px;
+        white-space: nowrap;
     }
 
-}
-
-
-@media (max-width: 768px) {
-
-    .branch-page {
-        padding-bottom: 20px;
+    .cpc-location-table tbody td {
+        padding: 14px 20px;
+        color: #475467;
+        border-bottom: 1px solid #f0f2f5;
+        font-size: 11px;
+        vertical-align: middle;
     }
 
-    .branch-header {
-        padding: 20px;
+    .cpc-location-table tbody tr {
+        transition: background .15s ease;
     }
 
-    .branch-header-content {
-        align-items: flex-start;
+    .cpc-location-table tbody tr:hover {
+        background: #f8faff;
     }
 
-    .branch-header-icon {
-        width: 48px;
-        height: 48px;
-
-        font-size: 20px;
+    .cpc-location-table tbody tr:last-child td {
+        border-bottom: 0;
     }
 
-    .branch-header-text h1 {
-        font-size: 20px;
+    .cpc-row-number {
+        color: #98a2b3 !important;
+        font-size: 10px !important;
+        font-variant-numeric: tabular-nums;
     }
 
-    .branch-header-text p {
+    .cpc-location-identity {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 220px;
+    }
+
+    .cpc-location-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 39px;
+        width: 39px;
+        height: 39px;
+        color: #2165d5;
+        background: #edf4ff;
+        border: 1px solid #e0ebff;
+        border-radius: 9px;
+        font-size: 15px;
+    }
+
+    .cpc-location-name {
+        color: #253858;
+        font-size: 11px;
+        font-weight: 750;
         line-height: 1.5;
     }
 
-    .branch-toolbar-actions {
-        align-items: stretch;
-        flex-direction: column;
+    .cpc-location-subtitle {
+        margin-top: 3px;
+        color: #98a2b3;
+        font-size: 9px;
     }
 
-    .branch-search {
-        width: 100%;
+    .cpc-location-code {
+        display: inline-flex;
+        align-items: center;
+        padding: 5px 9px;
+        color: #475467;
+        background: #f7f8fa;
+        border: 1px solid #e7eaf0;
+        border-radius: 5px;
+        font-family: Consolas, Monaco, monospace;
+        font-size: 10px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
     }
 
-    .branch-filter {
-        width: 100%;
+    /* STATUS */
+
+    .cpc-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 6px 10px;
+        border-radius: 30px;
+        font-size: 9px;
+        font-weight: 750;
+        white-space: nowrap;
     }
 
-    .branch-quick-add {
-        width: 100%;
+    .cpc-status-dot {
+        width: 6px;
+        height: 6px;
+        flex: 0 0 6px;
+        border-radius: 50%;
+        background: currentColor;
     }
 
-    .branch-table-footer {
+    .cpc-status.is-available {
+        color: #168653;
+        background: #eaf7f0;
+        border: 1px solid #d7efdf;
+    }
+
+    .cpc-status.is-unavailable {
+        color: #c33d3d;
+        background: #fff0ef;
+        border: 1px solid #f8d9d7;
+    }
+
+    /* ACTION */
+
+    .cpc-view-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        min-width: 75px;
+        height: 32px;
+        padding: 0 10px;
+        color: #155eef;
+        background: #ffffff;
+        border: 1px solid #d7e3f8;
+        border-radius: 6px;
+        font-size: 10px;
+        font-weight: 700;
+        text-decoration: none;
+        transition: all .2s ease;
+    }
+
+    .cpc-view-button:hover {
+        color: #ffffff;
+        background: #155eef;
+        border-color: #155eef;
+    }
+
+    .cpc-view-button i {
+        font-size: 12px;
+    }
+
+    /* FOOTER AND PAGINATION */
+
+    .cpc-table-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 14px;
+        padding: 15px 20px;
+        background: #ffffff;
+        border-top: 1px solid #edf0f4;
+    }
+
+    .cpc-record-count {
+        color: #8792a5;
+        font-size: 10px;
+    }
+
+    .cpc-record-count strong {
+        color: #475467;
+        font-weight: 750;
+    }
+
+    .cpc-pagination {
+        margin: 0;
+    }
+
+    .cpc-pagination nav {
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .cpc-pagination .pagination {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 5px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .cpc-pagination .page-item {
+        margin: 0;
+    }
+
+    .cpc-pagination .page-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 34px;
+        height: 34px;
+        padding: 0 11px;
+        color: #475467;
+        background: #ffffff;
+        border: 1px solid #e5eaf1;
+        border-radius: 6px !important;
+        font-size: 11px;
+        font-weight: 600;
+        text-decoration: none;
+        box-shadow: none;
+        transition: all .2s ease;
+    }
+
+    .cpc-pagination .page-item.active .page-link {
+        color: #ffffff;
+        background: #155eef;
+        border-color: #155eef;
+    }
+
+    .cpc-pagination .page-item:not(.active):not(.disabled) .page-link:hover {
+        color: #155eef;
+        background: #f3f7ff;
+        border-color: #c8d9f5;
+    }
+
+    .cpc-pagination .page-item.disabled .page-link {
+        color: #aab3c0;
+        background: #f9fafb;
+        border-color: #edf0f4;
+        cursor: not-allowed;
+    }
+
+    .cpc-pagination .page-link:focus {
+        box-shadow: 0 0 0 3px rgba(21, 94, 239, .10);
+    }
+
+    /* EMPTY STATE */
+
+    .cpc-empty-state {
+        padding: 65px 20px;
+        text-align: center;
+    }
+
+    .cpc-empty-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 68px;
+        height: 68px;
+        margin: 0 auto 17px;
+        color: #3977d7;
+        background: #edf4ff;
+        border: 1px solid #e0ebff;
+        border-radius: 18px;
+        font-size: 27px;
+    }
+
+    .cpc-empty-state h4 {
+        margin: 0 0 8px;
+        color: #253858;
+        font-size: 15px;
+        font-weight: 750;
+    }
+
+    .cpc-empty-state p {
+        max-width: 390px;
+        margin: 0 auto 17px;
+        color: #8792a5;
+        font-size: 11px;
+        line-height: 1.7;
+    }
+
+    /* SOURCE FOOTNOTE */
+
+    .cpc-data-note {
+        display: flex;
         align-items: flex-start;
-        flex-direction: column;
-    }
-
-}
-
-
-@media (max-width: 480px) {
-
-    .branch-breadcrumb {
+        gap: 9px;
+        margin-top: 15px;
+        padding: 12px 14px;
+        color: #667085;
+        background: #f8fafc;
+        border: 1px solid #e9edf3;
+        border-radius: 8px;
         font-size: 10px;
+        line-height: 1.65;
     }
 
-    .branch-header {
-        padding: 17px;
+    .cpc-data-note i {
+        margin-top: 1px;
+        color: #3977d7;
+        font-size: 13px;
     }
 
-    .branch-header-content {
-        gap: 11px;
+    /* RESPONSIVE */
+
+    @media (max-width: 992px) {
+        .cpc-directory-toolbar {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .cpc-directory-filters {
+            width: 100%;
+        }
+
+        .cpc-search-wrapper {
+            flex: 1 1 220px;
+        }
+
+        .cpc-search-input {
+            width: 100%;
+        }
     }
 
-    .branch-header-text h1 {
-        font-size: 18px;
+    @media (max-width: 768px) {
+        .cpc-page-header {
+            align-items: flex-start;
+            padding: 19px;
+        }
+
+        .cpc-header-reference {
+            display: none;
+        }
+
+        .cpc-heading-icon {
+            flex-basis: 46px;
+            width: 46px;
+            height: 46px;
+            font-size: 19px;
+        }
+
+        .cpc-heading-text h1 {
+            font-size: 18px;
+        }
+
+        .cpc-stat-card {
+            min-height: 115px;
+            padding: 16px;
+        }
+
+        .cpc-stat-number {
+            font-size: 25px;
+        }
+
+        .cpc-directory-toolbar {
+            padding: 17px;
+        }
+
+        .cpc-directory-filters {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .cpc-search-wrapper {
+            grid-column: 1 / -1;
+        }
+
+        .cpc-search-input {
+            width: 100%;
+        }
+
+        .cpc-status-select {
+            width: 100%;
+        }
+
+        .cpc-filter-button,
+        .cpc-clear-button {
+            width: 100%;
+        }
+
+        .cpc-table-footer {
+            align-items: flex-start;
+            flex-direction: column;
+            padding: 14px 16px;
+        }
+
+        .cpc-pagination {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .cpc-pagination nav {
+            justify-content: flex-start;
+        }
     }
 
-    .branch-header-text p {
-        font-size: 10px;
+    @media (max-width: 480px) {
+        .cpc-page-header {
+            padding: 16px;
+        }
+
+        .cpc-heading-text h1 {
+            font-size: 16px;
+        }
+
+        .cpc-heading-text p {
+            font-size: 10px;
+        }
+
+        .cpc-source-indicator {
+            font-size: 9px;
+        }
+
+        .cpc-directory-filters {
+            grid-template-columns: 1fr;
+        }
+
+        .cpc-search-wrapper {
+            grid-column: auto;
+        }
+
+        .cpc-stat-card {
+            min-height: 108px;
+        }
     }
-
-    .branch-stat-card {
-        min-height: 115px;
-        padding: 15px;
-    }
-
-    .branch-stat-number {
-        font-size: 24px;
-    }
-
-    .branch-stat-icon {
-        width: 38px;
-        height: 38px;
-    }
-
-    .branch-toolbar {
-        padding: 15px;
-    }
-
-}
-
-
-/* =========================================================
-   ACCESSIBILITY
-========================================================= */
-
-.branch-action:focus-visible,
-.branch-add-button:focus-visible,
-.branch-search input:focus-visible,
-.branch-filter:focus-visible {
-    outline: 2px solid rgba(47, 128, 237, 0.35);
-    outline-offset: 2px;
-}
-
 </style>
 
+<div class="cpc-directory">
 
-<div class="branch-page">
+    {{-- PAGE HEADER --}}
 
-    {{-- =====================================================
-         BREADCRUMB
-    ====================================================== --}}
+    <section class="cpc-page-header">
 
-    <div class="branch-breadcrumb">
+        <div class="cpc-page-heading">
 
-        <span>
-            Inventory
-        </span>
-
-        <i class="bi bi-chevron-right"></i>
-
-        <span class="current">
-            Branch Management
-        </span>
-
-    </div>
-
-
-    {{-- =====================================================
-         PAGE HEADER
-    ====================================================== --}}
-
-    <div class="branch-header">
-
-        <div class="branch-header-content">
-
-            <div class="branch-header-icon">
+            <div class="cpc-heading-icon">
                 <i class="bi bi-buildings-fill"></i>
             </div>
 
-            <div class="branch-header-text">
+            <div class="cpc-heading-text">
 
-                <h1>
-                    Branch Management
-                </h1>
+                <h1>CPC Branch Directory</h1>
 
                 <p>
-                    Manage CPC branch locations used for IT asset allocation and inventory tracking.
+                    Official CPC locations and availability information.
                 </p>
 
-                <div class="branch-header-context">
+                <span class="cpc-source-indicator">
+                    <i class="bi bi-database-check"></i>
+                    Live CPC SQL Server Data
+                </span>
 
-                    <i class="bi bi-box-seam-fill"></i>
+            </div>
 
-                    Inventory Configuration
+        </div>
+
+        <div class="cpc-header-reference">
+            <strong>MASTER DATA DIRECTORY</strong>
+            CPC Inventory Management System
+        </div>
+
+    </section>
+
+
+    {{-- SUMMARY CARDS --}}
+
+    <div class="row g-3 mb-4">
+
+        <div class="col-xl-4 col-md-4 col-12">
+
+            <div class="cpc-stat-card">
+
+                <div class="cpc-stat-top">
+
+                    <span class="cpc-stat-label">
+                        Total CPC Locations
+                    </span>
+
+                    <span class="cpc-stat-icon total">
+                        <i class="bi bi-buildings"></i>
+                    </span>
 
                 </div>
 
-                {{-- READ-ONLY NOTICE FOR ADMIN + EMPLOYEE --}}
+                <div class="cpc-stat-number">
+                    {{ number_format($totalBranches) }}
+                </div>
 
-                @if($isReadOnlyUser)
-
-                    <div class="branch-readonly-notice">
-
-                        <i class="bi bi-info-circle-fill"></i>
-
-                        <span>
-                            You have view and search access only.
-                            Branch management actions are available to Super Admin only.
-                        </span>
-
-                    </div>
-
-                @endif
+                <span class="cpc-stat-description">
+                    Registered in the CPC master database
+                </span>
 
             </div>
 
         </div>
 
 
-        {{-- =================================================
-             ADD BRANCH
-             SUPER ADMIN = ENABLED
-             ADMIN + EMPLOYEE = DISABLED
-        ================================================== --}}
+        <div class="col-xl-4 col-md-4 col-12">
 
-        <div class="branch-header-action">
+            <div class="cpc-stat-card">
 
-            @if($canManageBranches)
+                <div class="cpc-stat-top">
 
-                <a
-                    href="{{ route('admin.branches.create') }}"
-                    class="btn btn-primary branch-add-button"
-                >
+                    <span class="cpc-stat-label">
+                        Available Locations
+                    </span>
 
-                    <i class="bi bi-plus-lg"></i>
-
-                    Add New Branch
-
-                </a>
-
-            @else
-
-                <button
-                    type="button"
-                    class="btn btn-primary branch-add-button branch-disabled-action"
-                    title="Only Super Admin can add branches"
-                    aria-label="Add New Branch - disabled"
-                    onclick="branchReadOnlyMessage()"
-                >
-
-                    <i class="bi bi-plus-lg"></i>
-
-                    Add New Branch
-
-                </button>
-
-            @endif
-
-        </div>
-
-    </div>
-
-
-    {{-- =====================================================
-         KPI CARDS
-    ====================================================== --}}
-
-    <div class="row g-3 branch-kpi">
-
-
-        {{-- TOTAL --}}
-
-        <div class="col-xl-3 col-md-6">
-
-            <div class="branch-stat-card">
-
-                <div class="branch-stat-content">
-
-                    <div>
-
-                        <div class="branch-stat-label">
-                            Total Branches
-                        </div>
-
-                        <div class="branch-stat-number">
-                            {{ $branches->total() }}
-                        </div>
-
-                        <span class="branch-stat-description">
-                            Registered CPC locations
-                        </span>
-
-                    </div>
-
-                    <div class="branch-stat-icon stat-blue">
-                        <i class="bi bi-buildings-fill"></i>
-                    </div>
+                    <span class="cpc-stat-icon available">
+                        <i class="bi bi-check-circle"></i>
+                    </span>
 
                 </div>
+
+                <div class="cpc-stat-number">
+                    {{ number_format($activeBranches) }}
+                </div>
+
+                <span class="cpc-stat-description">
+                    Currently marked as available by CPC
+                </span>
 
             </div>
 
         </div>
 
 
-        {{-- ACTIVE --}}
+        <div class="col-xl-4 col-md-4 col-12">
 
-        <div class="col-xl-3 col-md-6">
+            <div class="cpc-stat-card">
 
-            <div class="branch-stat-card">
+                <div class="cpc-stat-top">
 
-                <div class="branch-stat-content">
+                    <span class="cpc-stat-label">
+                        Unavailable Locations
+                    </span>
 
-                    <div>
-
-                        <div class="branch-stat-label">
-                            Active Branches
-                        </div>
-
-                        <div class="branch-stat-number">
-                            {{ $branches->where('is_active', true)->count() }}
-                        </div>
-
-                        <span class="branch-stat-description">
-                            Currently operational
-                        </span>
-
-                    </div>
-
-                    <div class="branch-stat-icon stat-green">
-                        <i class="bi bi-check-circle-fill"></i>
-                    </div>
+                    <span class="cpc-stat-icon unavailable">
+                        <i class="bi bi-exclamation-circle"></i>
+                    </span>
 
                 </div>
 
-            </div>
-
-        </div>
-
-
-        {{-- INACTIVE --}}
-
-        <div class="col-xl-3 col-md-6">
-
-            <div class="branch-stat-card">
-
-                <div class="branch-stat-content">
-
-                    <div>
-
-                        <div class="branch-stat-label">
-                            Inactive Branches
-                        </div>
-
-                        <div class="branch-stat-number">
-                            {{ $branches->where('is_active', false)->count() }}
-                        </div>
-
-                        <span class="branch-stat-description">
-                            Currently deactivated
-                        </span>
-
-                    </div>
-
-                    <div class="branch-stat-icon stat-red">
-                        <i class="bi bi-archive-fill"></i>
-                    </div>
-
+                <div class="cpc-stat-number">
+                    {{ number_format($inactiveBranches) }}
                 </div>
 
-            </div>
-
-        </div>
-
-
-        {{-- SYSTEM SCOPE --}}
-
-        <div class="col-xl-3 col-md-6">
-
-            <div class="branch-stat-card">
-
-                <div class="branch-stat-content">
-
-                    <div>
-
-                        <div class="branch-stat-label">
-                            System Scope
-                        </div>
-
-                        <div class="branch-stat-number">
-                            CPC
-                        </div>
-
-                        <span class="branch-stat-description">
-                            IT inventory locations
-                        </span>
-
-                    </div>
-
-                    <div class="branch-stat-icon stat-purple">
-                        <i class="bi bi-diagram-3-fill"></i>
-                    </div>
-
-                </div>
+                <span class="cpc-stat-description">
+                    Not currently marked as available
+                </span>
 
             </div>
 
@@ -1489,165 +898,110 @@ $isReadOnlyUser = $isAdmin || $isEmployee;
     </div>
 
 
-    {{-- =====================================================
-         MAIN CONTENT CARD
-    ====================================================== --}}
+    {{-- LOCATION DIRECTORY --}}
 
-    <div class="branch-content-card">
+    <section class="cpc-directory-card">
 
-        {{-- =================================================
-             TOOLBAR
-        ================================================== --}}
+        {{-- TOOLBAR --}}
 
-        <div class="branch-toolbar">
+        <div class="cpc-directory-toolbar">
 
-            <div class="branch-toolbar-title">
+            <div class="cpc-directory-title">
 
-                <div class="branch-toolbar-title-icon">
-
+                <h5>
                     <i class="bi bi-list-ul"></i>
+                    CPC Location Directory
+                </h5>
 
-                </div>
-
-                <div>
-
-                    <h5>
-                        Branch Directory
-                    </h5>
-
-                    <p>
-                        CPC locations available for inventory assignment
-                    </p>
-
-                </div>
+                <p>
+                    Search, filter and view official CPC location records.
+                </p>
 
             </div>
 
 
-            <div class="branch-toolbar-actions">
+            <form
+                method="GET"
+                action="{{ route('admin.branches.index') }}"
+                class="cpc-directory-filters"
+            >
 
-
-                {{-- SEARCH --}}
-
-                <div class="branch-search">
+                <div class="cpc-search-wrapper">
 
                     <i class="bi bi-search"></i>
 
                     <input
-                        type="text"
-                        id="branchSearch"
-                        placeholder="Search branch, code or location..."
-                        autocomplete="off"
-                        aria-label="Search branches"
+                        type="search"
+                        name="search"
+                        class="cpc-search-input"
+                        placeholder="Search location name or ID..."
+                        value="{{ $search }}"
+                        aria-label="Search CPC locations"
                     >
 
                 </div>
 
 
-                {{-- STATUS FILTER --}}
-
                 <select
-                    id="branchStatusFilter"
-                    class="branch-filter"
-                    aria-label="Filter branches by status"
+                    name="status"
+                    class="cpc-status-select"
+                    aria-label="Filter locations by availability"
                 >
 
-                    <option value="all">
-                        All Status
+                    <option value="all" @selected($status === 'all')>
+                        All Availability
                     </option>
 
-                    <option value="active">
-                        Active
+                    <option value="active" @selected($status === 'active')>
+                        Available
                     </option>
 
-                    <option value="inactive">
-                        Inactive
+                    <option value="inactive" @selected($status === 'inactive')>
+                        Unavailable
                     </option>
 
                 </select>
 
 
-                {{-- QUICK ADD --}}
+                <button type="submit" class="cpc-filter-button">
+                    <i class="bi bi-search"></i>
+                    Apply
+                </button>
 
-                @if(Route::has('admin.branches.create'))
 
-                    @if($canManageBranches)
+                @if($search !== '' || $status !== 'all')
 
-                        <a
-                            href="{{ route('admin.branches.create') }}"
-                            class="btn btn-primary branch-quick-add"
-                            title="Add New Branch"
-                            aria-label="Add New Branch"
-                        >
-
-                            <i class="bi bi-plus-lg"></i>
-
-                        </a>
-
-                    @else
-
-                        <button
-                            type="button"
-                            class="btn btn-primary branch-quick-add branch-disabled-action"
-                            title="Only Super Admin can add branches"
-                            aria-label="Add New Branch - disabled"
-                            onclick="branchReadOnlyMessage()"
-                        >
-
-                            <i class="bi bi-plus-lg"></i>
-
-                        </button>
-
-                    @endif
+                    <a
+                        href="{{ route('admin.branches.index') }}"
+                        class="cpc-clear-button"
+                    >
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                        Reset
+                    </a>
 
                 @endif
 
-            </div>
+            </form>
 
         </div>
 
 
-        {{-- =================================================
-             TABLE
-        ================================================== --}}
+        {{-- TABLE --}}
 
         @if($branches->count() > 0)
 
-            <div class="branch-table-wrapper">
+            <div class="cpc-table-responsive">
 
-                <table
-                    class="branch-table"
-                    id="branchesTable"
-                >
+                <table class="cpc-location-table">
 
                     <thead>
 
                         <tr>
-
-                            <th style="width:55px;">
-                                #
-                            </th>
-
-                            <th>
-                                Branch
-                            </th>
-
-                            <th>
-                                Branch Code
-                            </th>
-
-                            <th>
-                                Location
-                            </th>
-
-                            <th>
-                                Status
-                            </th>
-
-                            <th style="width:145px;">
-                                Actions
-                            </th>
-
+                            <th style="width: 65px;">No.</th>
+                            <th>CPC Location</th>
+                            <th style="width: 145px;">Location ID</th>
+                            <th style="width: 165px;">Availability</th>
+                            <th style="width: 120px;">Action</th>
                         </tr>
 
                     </thead>
@@ -1657,73 +1011,65 @@ $isReadOnlyUser = $isAdmin || $isEmployee;
 
                         @foreach($branches as $branch)
 
-                            <tr
-                                data-status="{{ $branch->is_active ? 'active' : 'inactive' }}"
-                            >
+                            @php
+                                $isAvailable = (string) $branch->Is_Available === '1';
+                            @endphp
 
+                            <tr>
 
-                                {{-- NUMBER --}}
+                                <td class="cpc-row-number">
+                                    {{ $branches->firstItem() + $loop->index }}
+                                </td>
+
 
                                 <td>
 
-                                    <span class="branch-number">
+                                    <div class="cpc-location-identity">
 
-                                        {{ $branches->firstItem() + $loop->index }}
+                                        <div class="cpc-location-icon">
+                                            <i class="bi bi-building"></i>
+                                        </div>
 
+                                        <div>
+
+                                            <div class="cpc-location-name">
+                                                {{ $branch->Location_Name }}
+                                            </div>
+
+                                            <div class="cpc-location-subtitle">
+                                                CPC Master Location
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                </td>
+
+
+                                <td>
+
+                                    <span class="cpc-location-code">
+                                        {{ $branch->Location_Id }}
                                     </span>
 
                                 </td>
 
 
-                                {{-- BRANCH --}}
-
                                 <td>
 
-                                    <div class="branch-identity">
+                                    @if($isAvailable)
 
-                                        <div class="branch-avatar">
-
-                                            <i class="bi bi-building-fill"></i>
-
-                                        </div>
-
-                                        <div>
-
-                                            <div class="branch-name">
-
-                                                {{ $branch->name }}
-
-                                            </div>
-
-                                            <div class="branch-type">
-
-                                                CPC Branch Location
-
-                                            </div>
-
-                                        </div>
-
-                                    </div>
-
-                                </td>
-
-
-                                {{-- CODE --}}
-
-                                <td>
-
-                                    @if($branch->code)
-
-                                        <span class="branch-code">
-
-                                            {{ $branch->code }}
-
+                                        <span class="cpc-status is-available">
+                                            <span class="cpc-status-dot"></span>
+                                            Available
                                         </span>
 
                                     @else
 
-                                        <span class="no-value">
-                                            Not assigned
+                                        <span class="cpc-status is-unavailable">
+                                            <span class="cpc-status-dot"></span>
+                                            Unavailable
                                         </span>
 
                                     @endif
@@ -1731,270 +1077,17 @@ $isReadOnlyUser = $isAdmin || $isEmployee;
                                 </td>
 
 
-                                {{-- LOCATION --}}
-
                                 <td>
 
-                                    @if($branch->location)
-
-                                        <div class="branch-location">
-
-                                            <i class="bi bi-geo-alt-fill"></i>
-
-                                            <span>
-                                                {{ $branch->location }}
-                                            </span>
-
-                                        </div>
-
-                                    @else
-
-                                        <span class="no-value">
-                                            Location not specified
-                                        </span>
-
-                                    @endif
-
-                                </td>
-
-
-                                {{-- STATUS --}}
-
-                                <td>
-
-                                    @if($branch->is_active)
-
-                                        <span
-                                            class="branch-status active"
-                                            data-status-label="active"
-                                        >
-
-                                            <span class="status-dot"></span>
-
-                                            Active
-
-                                        </span>
-
-                                    @else
-
-                                        <span
-                                            class="branch-status inactive"
-                                            data-status-label="inactive"
-                                        >
-
-                                            <span class="status-dot"></span>
-
-                                            Inactive
-
-                                        </span>
-
-                                    @endif
-
-                                </td>
-
-
-                                {{-- =================================================
-                                     ACTIONS
-                                ================================================== --}}
-
-                                <td>
-
-                                    <div class="branch-actions">
-
-
-                                        {{-- VIEW
-                                             ALL ROLES = ENABLED
-                                        --}}
-
-                                        @if(Route::has('admin.branches.show'))
-
-                                            <a
-                                                href="{{ route('admin.branches.show', $branch) }}"
-                                                class="branch-action branch-action-view"
-                                                title="View Branch"
-                                                aria-label="View Branch"
-                                            >
-
-                                                <i class="bi bi-eye"></i>
-
-                                            </a>
-
-                                        @endif
-
-
-                                        {{-- EDIT
-                                             SUPER ADMIN = ENABLED
-                                             ADMIN + EMPLOYEE = DISABLED
-                                        --}}
-
-                                        @if(Route::has('admin.branches.edit'))
-
-                                            @if($canManageBranches)
-
-                                                <a
-                                                    href="{{ route('admin.branches.edit', $branch) }}"
-                                                    class="branch-action branch-action-edit"
-                                                    title="Edit Branch"
-                                                    aria-label="Edit Branch"
-                                                >
-
-                                                    <i class="bi bi-pencil"></i>
-
-                                                </a>
-
-                                            @else
-
-                                                <button
-                                                    type="button"
-                                                    class="branch-action branch-action-edit branch-disabled-action"
-                                                    title="Only Super Admin can edit branches"
-                                                    aria-label="Edit Branch - disabled"
-                                                    onclick="branchReadOnlyMessage()"
-                                                >
-
-                                                    <i class="bi bi-pencil"></i>
-
-                                                </button>
-
-                                            @endif
-
-                                        @endif
-
-
-                                        {{-- DEACTIVATE
-                                             SUPER ADMIN = ENABLED
-                                             ADMIN + EMPLOYEE = DISABLED
-                                        --}}
-
-                                        @if($branch->is_active)
-
-                                            @if($canManageBranches)
-
-                                                <form
-                                                    action="{{ route('admin.branches.destroy', $branch) }}"
-                                                    method="POST"
-                                                    class="d-inline"
-                                                    onsubmit="return confirm('Are you sure you want to deactivate this branch?');"
-                                                >
-
-                                                    @csrf
-
-                                                    @method('DELETE')
-
-                                                    <button
-                                                        type="submit"
-                                                        class="branch-action branch-action-danger"
-                                                        title="Deactivate Branch"
-                                                        aria-label="Deactivate Branch"
-                                                    >
-
-                                                        <i class="bi bi-archive"></i>
-
-                                                    </button>
-
-                                                </form>
-
-                                            @else
-
-                                                <button
-                                                    type="button"
-                                                    class="branch-action branch-action-danger branch-disabled-action"
-                                                    title="Only Super Admin can deactivate branches"
-                                                    aria-label="Deactivate Branch - disabled"
-                                                    onclick="branchReadOnlyMessage()"
-                                                >
-
-                                                    <i class="bi bi-archive"></i>
-
-                                                </button>
-
-                                            @endif
-
-
-                                        @else
-
-
-                                            {{-- REACTIVATE
-                                                 SUPER ADMIN = ENABLED
-                                                 ADMIN + EMPLOYEE = DISABLED
-                                            --}}
-
-                                            @if($canManageBranches)
-
-                                                <form
-                                                    action="{{ route('admin.branches.update', $branch) }}"
-                                                    method="POST"
-                                                    class="d-inline"
-                                                    onsubmit="return confirm('Are you sure you want to reactivate this branch?');"
-                                                >
-
-                                                    @csrf
-
-                                                    @method('PUT')
-
-                                                    <input
-                                                        type="hidden"
-                                                        name="name"
-                                                        value="{{ $branch->name }}"
-                                                    >
-
-                                                    <input
-                                                        type="hidden"
-                                                        name="code"
-                                                        value="{{ $branch->code }}"
-                                                    >
-
-                                                    <input
-                                                        type="hidden"
-                                                        name="location"
-                                                        value="{{ $branch->location }}"
-                                                    >
-
-                                                    <input
-                                                        type="hidden"
-                                                        name="description"
-                                                        value="{{ $branch->description }}"
-                                                    >
-
-                                                    <input
-                                                        type="hidden"
-                                                        name="is_active"
-                                                        value="1"
-                                                    >
-
-                                                    <button
-                                                        type="submit"
-                                                        class="branch-action branch-action-success"
-                                                        title="Reactivate Branch"
-                                                        aria-label="Reactivate Branch"
-                                                    >
-
-                                                        <i class="bi bi-arrow-clockwise"></i>
-
-                                                    </button>
-
-                                                </form>
-
-                                            @else
-
-                                                <button
-                                                    type="button"
-                                                    class="branch-action branch-action-success branch-disabled-action"
-                                                    title="Only Super Admin can reactivate branches"
-                                                    aria-label="Reactivate Branch - disabled"
-                                                    onclick="branchReadOnlyMessage()"
-                                                >
-
-                                                    <i class="bi bi-arrow-clockwise"></i>
-
-                                                </button>
-
-                                            @endif
-
-                                        @endif
-
-
-                                    </div>
+                                    <a
+                                        href="{{ route('admin.branches.show', $branch->Location_Id) }}"
+                                        class="cpc-view-button"
+                                        title="View location details"
+                                        aria-label="View details for {{ $branch->Location_Name }}"
+                                    >
+                                        <i class="bi bi-eye"></i>
+                                        View
+                                    </a>
 
                                 </td>
 
@@ -2006,67 +1099,35 @@ $isReadOnlyUser = $isAdmin || $isEmployee;
 
                 </table>
 
-
-                {{-- SEARCH EMPTY --}}
-
-                <div
-                    id="searchEmpty"
-                    class="search-empty"
-                >
-
-                    <div class="search-empty-icon">
-
-                        <i class="bi bi-search"></i>
-
-                    </div>
-
-                    <strong>
-                        No matching branches
-                    </strong>
-
-                    <span>
-                        Try another branch name, code, location or status.
-                    </span>
-
-                </div>
-
             </div>
 
 
-            {{-- =================================================
-                 TABLE FOOTER
-            ================================================== --}}
+            {{-- PAGINATION --}}
 
-            <div class="branch-table-footer">
+            <div class="cpc-table-footer">
 
-                <div class="branch-record-count">
+                <div class="cpc-record-count">
 
                     Showing
 
-                    <strong>
-                        {{ $branches->firstItem() }}
-                    </strong>
+                    <strong>{{ $branches->firstItem() }}</strong>
 
-                    –
+                    to
 
-                    <strong>
-                        {{ $branches->lastItem() }}
-                    </strong>
+                    <strong>{{ $branches->lastItem() }}</strong>
 
                     of
 
-                    <strong>
-                        {{ $branches->total() }}
-                    </strong>
+                    <strong>{{ number_format($branches->total()) }}</strong>
 
-                    branches
+                    locations
 
                 </div>
 
 
-                <div>
+                <div class="cpc-pagination">
 
-                    {{ $branches->links() }}
+                    {{ $branches->onEachSide(1)->links('vendor.pagination.cpc-bootstrap') }}
 
                 </div>
 
@@ -2075,60 +1136,30 @@ $isReadOnlyUser = $isAdmin || $isEmployee;
 
         @else
 
+            {{-- EMPTY STATE --}}
 
-            {{-- =================================================
-                 EMPTY DATABASE STATE
-            ================================================== --}}
+            <div class="cpc-empty-state">
 
-            <div class="branch-empty">
-
-                <div class="branch-empty-icon">
-
-                    <i class="bi bi-buildings"></i>
-
+                <div class="cpc-empty-icon">
+                    <i class="bi bi-search"></i>
                 </div>
 
-                <h4>
-                    No Branches Registered
-                </h4>
+                <h4>No CPC Locations Found</h4>
 
                 <p>
-                    No CPC branch locations are currently registered.
-                    Add a branch to begin assigning IT assets to locations.
+                    No location records match your search criteria.
+                    Try another location name or ID, or reset the filters.
                 </p>
 
-                @if(Route::has('admin.branches.create'))
+                @if($search !== '' || $status !== 'all')
 
-                    @if($canManageBranches)
-
-                        <a
-                            href="{{ route('admin.branches.create') }}"
-                            class="btn btn-primary"
-                        >
-
-                            <i class="bi bi-plus-lg me-1"></i>
-
-                            Register First Branch
-
-                        </a>
-
-                    @else
-
-                        <button
-                            type="button"
-                            class="btn btn-primary branch-disabled-action"
-                            title="Only Super Admin can add branches"
-                            aria-label="Register First Branch - disabled"
-                            onclick="branchReadOnlyMessage()"
-                        >
-
-                            <i class="bi bi-plus-lg me-1"></i>
-
-                            Register First Branch
-
-                        </button>
-
-                    @endif
+                    <a
+                        href="{{ route('admin.branches.index') }}"
+                        class="cpc-clear-button"
+                    >
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                        Reset Filters
+                    </a>
 
                 @endif
 
@@ -2136,140 +1167,24 @@ $isReadOnlyUser = $isAdmin || $isEmployee;
 
         @endif
 
+    </section>
+
+
+    {{-- DATA SOURCE INFORMATION --}}
+
+    <div class="cpc-data-note">
+
+        <i class="bi bi-info-circle-fill"></i>
+
+        <div>
+            <strong>Data source:</strong>
+            Location information is retrieved from the CPC master database
+            (SQL Server). This directory is read-only. Location records are
+            maintained by the source system.
+        </div>
+
     </div>
 
 </div>
-
-
-{{-- =========================================================
-     SEARCH + FILTER
-========================================================= --}}
-
-@push('scripts')
-
-<script>
-
-function branchReadOnlyMessage()
-{
-    alert(
-        'Branch management is available to Super Admin only. You have view and search access only.'
-    );
-}
-
-
-document.addEventListener('DOMContentLoaded', function () {
-
-    const searchInput =
-        document.getElementById('branchSearch');
-
-    const statusFilter =
-        document.getElementById('branchStatusFilter');
-
-    const table =
-        document.getElementById('branchesTable');
-
-    const searchEmpty =
-        document.getElementById('searchEmpty');
-
-
-    if (!table) {
-        return;
-    }
-
-
-    const rows =
-        table.querySelectorAll('tbody tr');
-
-
-    function filterBranches()
-    {
-        const searchValue =
-            searchInput
-                ? searchInput.value.toLowerCase().trim()
-                : '';
-
-
-        const statusValue =
-            statusFilter
-                ? statusFilter.value
-                : 'all';
-
-
-        let visibleRows = 0;
-
-
-        rows.forEach(function (row) {
-
-            const rowText =
-                row.textContent.toLowerCase();
-
-
-            const rowStatus =
-                row.dataset.status;
-
-
-            const matchesSearch =
-                rowText.includes(searchValue);
-
-
-            const matchesStatus =
-                statusValue === 'all' ||
-                rowStatus === statusValue;
-
-
-            if (
-                matchesSearch &&
-                matchesStatus
-            ) {
-
-                row.style.display = '';
-
-                visibleRows++;
-
-            } else {
-
-                row.style.display = 'none';
-
-            }
-
-        });
-
-
-        if (searchEmpty) {
-
-            searchEmpty.style.display =
-                visibleRows === 0
-                    ? 'block'
-                    : 'none';
-
-        }
-
-    }
-
-
-    if (searchInput) {
-
-        searchInput.addEventListener(
-            'input',
-            filterBranches
-        );
-
-    }
-
-
-    if (statusFilter) {
-
-        statusFilter.addEventListener(
-            'change',
-            filterBranches
-        );
-
-    }
-
-});
-
-</script>
-
-@endpush
 
 @endsection
