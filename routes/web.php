@@ -436,7 +436,10 @@ Route::prefix('admin')
 Route::get('branches/{locationId}', [BranchController::class, 'show'])
     ->whereNumber('locationId')
     ->name('branches.show');
-        Route::resource('departments', DepartmentController::class);
+       Route::get(
+    'departments',
+    [DepartmentController::class, 'index']
+)->name('departments.index');
         Route::resource('function-units', FunctionUnitController::class);
     });
 

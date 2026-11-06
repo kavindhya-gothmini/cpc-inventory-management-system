@@ -3,203 +3,115 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Branch;
-use App\Models\Department;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class DepartmentController extends Controller
 {
     /**
-     * Display a listing of departments.
+     * Display the live CPC Department master directory.
      *
-     * All authenticated roles can view departments.
-     */
-    public function index()
-    {
-        $departments = Department::with('branch')
-            ->latest()
-            ->paginate(10);
-
-        return view('admin.departments.index', compact('departments'));
-    }
-
-    /**
-     * Show the form for creating a new department.
+     * Source:
+     * SQL Server -> CPC_HelpDesk_And_Asset_Management
+     * Table      -> Department
      *
-     * Super Admin only.
+     * This directory is read-only.
      */
-    public function create()
+    public function index(Request $request)
     {
-        $this->ensureSuperAdmin();
+        $connection = DB::connection('sqlsrv_assets');
 
-        $branches = Branch::where('is_active', true)
-            ->orderBy('name')
-            ->get();
+        $sourceQuery = $connection->table('Department');
 
-        return view('admin.departments.create', compact('branches'));
-    }
+        /*
+        |--------------------------------------------------------------------------
+        | Overall Statistics
+        |--------------------------------------------------------------------------
+        */
 
-    /**
-     * Store a newly created department.
-     *
-     * Super Admin only.
-     */
-    public function store(Request $request)
-    {
-        $this->ensureSuperAdmin();
+        $totalDepartments = (clone $sourceQuery)->count();
 
-        $validated = $request->validate([
-            'name' => [
-                'required',
-                'string',
-                'max:255',
-            ],
+        $headOfficeDepartments = (clone $sourceQuery)
+            ->where('LocationType', 'Head Office')
+            ->count();
 
-            'code' => [
-                'nullable',
-                'string',
-                'max:100',
-                'unique:departments,code',
-            ],
+        $otherLocationDepartments = max(
+            0,
+            $totalDepartments - $headOfficeDepartments
+        );
 
-            'branch_id' => [
-                'required',
-                'exists:branches,id',
-            ],
+        /*
+        |--------------------------------------------------------------------------
+        | Available Location Types
+        |--------------------------------------------------------------------------
+        */
 
-            'description' => [
-                'nullable',
-                'string',
-            ],
+        $locationTypes = (clone $sourceQuery)
+            ->whereNotNull('LocationType')
+            ->where('LocationType', '<>', '')
+            ->distinct()
+            ->orderBy('LocationType')
+            ->pluck('LocationType');
 
-            'is_active' => [
-                'nullable',
-                'boolean',
-            ],
-        ]);
+        /*
+        |--------------------------------------------------------------------------
+        | Search and Filters
+        |--------------------------------------------------------------------------
+        */
 
-        $validated['is_active'] = $request->boolean('is_active');
+        $search = trim((string) $request->query('search', ''));
 
-        Department::create($validated);
+        $locationType = trim(
+            (string) $request->query('location_type', 'all')
+        );
 
-        return redirect()
-            ->route('admin.departments.index')
-            ->with('success', 'Department created successfully.');
-    }
+        $departmentsQuery = (clone $sourceQuery)
+            ->select([
+                'Id',
+                'Name',
+                'LocationCode',
+                'LocationType',
+            ]);
 
-    /**
-     * Display the specified department.
-     *
-     * All authenticated roles can view a department.
-     */
-    public function show(Department $department)
-    {
-        $department->load([
-            'branch',
-            'functionUnits',
-            'employees',
-            'items',
-        ]);
+        // Search by CPC department ID, name, location code or location type.
+        if ($search !== '') {
+            $departmentsQuery->where(function ($query) use ($search) {
 
-        return view('admin.departments.show', compact('department'));
-    }
+                $query->where('Name', 'like', '%' . $search . '%')
+                    ->orWhere('LocationCode', 'like', '%' . $search . '%')
+                    ->orWhere('LocationType', 'like', '%' . $search . '%');
 
-    /**
-     * Show the form for editing the specified department.
-     *
-     * Super Admin only.
-     */
-    public function edit(Department $department)
-    {
-        $this->ensureSuperAdmin();
-
-        $branches = Branch::where('is_active', true)
-            ->orderBy('name')
-            ->get();
-
-        return view('admin.departments.edit', compact(
-            'department',
-            'branches'
-        ));
-    }
-
-    /**
-     * Update the specified department.
-     *
-     * Super Admin only.
-     */
-    public function update(Request $request, Department $department)
-    {
-        $this->ensureSuperAdmin();
-
-        $validated = $request->validate([
-            'name' => [
-                'required',
-                'string',
-                'max:255',
-            ],
-
-            'code' => [
-                'nullable',
-                'string',
-                'max:100',
-                'unique:departments,code,' . $department->id,
-            ],
-
-            'branch_id' => [
-                'required',
-                'exists:branches,id',
-            ],
-
-            'description' => [
-                'nullable',
-                'string',
-            ],
-
-            'is_active' => [
-                'nullable',
-                'boolean',
-            ],
-        ]);
-
-        $validated['is_active'] = $request->boolean('is_active');
-
-        $department->update($validated);
-
-        return redirect()
-            ->route('admin.departments.index')
-            ->with('success', 'Department updated successfully.');
-    }
-
-    /**
-     * Deactivate the specified department.
-     *
-     * Super Admin only.
-     */
-    public function destroy(Department $department)
-    {
-        $this->ensureSuperAdmin();
-
-        $department->update([
-            'is_active' => false,
-        ]);
-
-        return redirect()
-            ->route('admin.departments.index')
-            ->with('success', 'Department deactivated successfully.');
-    }
-
-    /**
-     * Ensure the current user is a Super Admin.
-     *
-     * Only Super Admin can manage department master data.
-     */
-    private function ensureSuperAdmin(): void
-    {
-        $user = auth()->user();
-
-        if (!$user || $user->role !== 'super_admin') {
-            abort(403, 'Only Super Admin can manage departments.');
+                if (ctype_digit($search)) {
+                    $query->orWhere('Id', (int) $search);
+                }
+            });
         }
+
+        // Filter by CPC location type.
+        if ($locationType !== '' && $locationType !== 'all') {
+            $departmentsQuery->where('LocationType', $locationType);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Pagination
+        |--------------------------------------------------------------------------
+        */
+
+        $departments = $departmentsQuery
+            ->orderBy('Name')
+            ->orderBy('Id')
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('admin.departments.index', compact(
+            'departments',
+            'totalDepartments',
+            'headOfficeDepartments',
+            'otherLocationDepartments',
+            'locationTypes',
+            'search',
+            'locationType'
+        ));
     }
 }
