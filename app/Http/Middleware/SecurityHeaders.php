@@ -12,6 +12,15 @@ class SecurityHeaders
     {
         $response = $next($request);
 
+        // Prevent browser caching of application responses.
+        $response->headers->set(
+            'Cache-Control',
+            'no-store, no-cache, must-revalidate, private, max-age=0'
+        );
+
+        $response->headers->set('Pragma', 'no-cache');
+        $response->headers->set('Expires', '0');
+
         // Prevent MIME-type sniffing.
         $response->headers->set(
             'X-Content-Type-Options',
@@ -30,14 +39,17 @@ class SecurityHeaders
             'strict-origin-when-cross-origin'
         );
 
-        // Disable browser capabilities not required by this application.
+        // Disable unnecessary browser capabilities.
         $response->headers->set(
             'Permissions-Policy',
             'camera=(), microphone=(), geolocation=()'
         );
 
         // Enable HSTS only in production over HTTPS.
-        if (app()->environment('production') && $request->isSecure()) {
+        if (
+            app()->environment('production') &&
+            $request->isSecure()
+        ) {
             $response->headers->set(
                 'Strict-Transport-Security',
                 'max-age=31536000'
