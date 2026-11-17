@@ -3,7 +3,9 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+
 use App\Http\Middleware\SecurityHeaders;
+use App\Http\Middleware\ForceHttps;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -17,6 +19,9 @@ return Application::configure(basePath: dirname(__DIR__))
         |--------------------------------------------------------------------------
         | Middleware Aliases
         |--------------------------------------------------------------------------
+        |
+        | Register custom middleware aliases.
+        |
         */
 
         $middleware->alias([
@@ -25,10 +30,23 @@ return Application::configure(basePath: dirname(__DIR__))
 
         /*
         |--------------------------------------------------------------------------
-        | Global Security Middleware
+        | HTTPS Enforcement
         |--------------------------------------------------------------------------
         |
-        | Apply security headers to all application HTTP responses.
+        | Enforce HTTPS only in production.
+        | Local development using HTTP remains supported.
+        |
+        */
+
+        $middleware->append(ForceHttps::class);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Global Security Headers
+        |--------------------------------------------------------------------------
+        |
+        | Apply security headers and browser cache protection
+        | to application HTTP responses.
         |
         */
 
@@ -43,7 +61,7 @@ return Application::configure(basePath: dirname(__DIR__))
         |--------------------------------------------------------------------------
         |
         | Keep Laravel's default exception handling.
-        | Custom production error handling can be configured here later.
+        | Configure production error reporting separately.
         |
         */
 
