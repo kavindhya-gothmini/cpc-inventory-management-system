@@ -2066,7 +2066,7 @@ $isReadOnlyUser = $isAdmin || $isEmployee;
 
                 <div>
 
-                    {{ $branches->links() }}
+                    {{ $branches->links('pagination::bootstrap-5') }}
 
                 </div>
 
