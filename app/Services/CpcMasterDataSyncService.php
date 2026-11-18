@@ -42,6 +42,17 @@ class CpcMasterDataSyncService
                     'is_active' => true,
                 ]
             );
+
+            $branch = Branch::where(
+                'code',
+                (string) $location->source_location_id
+            )->first();
+
+            if ($branch) {
+                DB::table('cpc_master_locations')
+                    ->where('source_location_id', $location->source_location_id)
+                    ->update(['local_branch_id' => $branch->id]);
+            }
         }
     }
 
