@@ -15,6 +15,7 @@ class Department extends Model
         'name',
         'code',
         'branch_id',
+        'source_location_id',
         'description',
         'is_active',
     ];

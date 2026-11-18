@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Department;
 use App\Models\FunctionUnit;
+use App\Services\CpcMasterDataSyncService;
 use Illuminate\Http\Request;
 
 class FunctionUnitController extends Controller
@@ -35,7 +36,10 @@ class FunctionUnitController extends Controller
     {
         $this->ensureSuperAdmin();
 
+        app(CpcMasterDataSyncService::class)->syncDepartments();
+
         $departments = Department::where('is_active', true)
+            ->whereNotNull('source_location_id')
             ->orderBy('name')
             ->get();
 
@@ -124,7 +128,10 @@ class FunctionUnitController extends Controller
     {
         $this->ensureSuperAdmin();
 
+        app(CpcMasterDataSyncService::class)->syncDepartments();
+
         $departments = Department::where('is_active', true)
+            ->whereNotNull('source_location_id')
             ->orderBy('name')
             ->get();
 
