@@ -7,6 +7,7 @@ use App\Models\Department;
 use App\Models\FunctionUnit;
 use App\Services\CpcMasterDataSyncService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class FunctionUnitController extends Controller
 {
@@ -39,13 +40,21 @@ class FunctionUnitController extends Controller
         app(CpcMasterDataSyncService::class)->syncDepartments();
 
         $departments = Department::where('is_active', true)
-            ->whereNotNull('source_location_id')
+            ->whereNotNull('source_function_id')
             ->orderBy('name')
             ->get();
 
+        $cpcSubFunctions = DB::table('cpc_master_sub_functions')
+            ->whereNotNull('sub_function_name')
+            ->whereNotNull('source_sub_function_id')
+            ->get([
+                'sub_function_name',
+                'source_sub_function_id',
+            ]);
+
         return view(
             'admin.function-units.create',
-            compact('departments')
+            compact('departments', 'cpcSubFunctions')
         );
     }
 
@@ -87,6 +96,22 @@ class FunctionUnitController extends Controller
                 'boolean',
             ],
         ]);
+
+        $duplicateExists = DB::table('cpc_master_sub_functions')
+            ->whereRaw(
+                'LOWER(TRIM(sub_function_name)) = ?',
+                [strtolower(trim($validated['name']))]
+            )
+            ->where('source_sub_function_id', $validated['code'] ?? '')
+            ->exists();
+
+        if ($duplicateExists) {
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'name' => 'This Function Unit already exists in CPC master data.',
+                ]);
+        }
 
         $validated['is_active'] = $request->boolean('is_active');
 
@@ -131,7 +156,7 @@ class FunctionUnitController extends Controller
         app(CpcMasterDataSyncService::class)->syncDepartments();
 
         $departments = Department::where('is_active', true)
-            ->whereNotNull('source_location_id')
+            ->whereNotNull('source_function_id')
             ->orderBy('name')
             ->get();
 
@@ -166,7 +191,7 @@ class FunctionUnitController extends Controller
                 'nullable',
                 'string',
                 'max:100',
-                'unique:function_units,code,' . $functionUnit->id,
+                'unique:function_units,code,'.$functionUnit->id,
             ],
 
             'department_id' => [
@@ -227,7 +252,7 @@ class FunctionUnitController extends Controller
     {
         $user = auth()->user();
 
-        if (!$user || $user->role !== 'super_admin') {
+        if (! $user || $user->role !== 'super_admin') {
             abort(
                 403,
                 'Only Super Admin can manage function units.'

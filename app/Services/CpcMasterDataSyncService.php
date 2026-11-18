@@ -47,30 +47,26 @@ class CpcMasterDataSyncService
 
     public function syncDepartments(): void
     {
-        if (! Schema::hasTable('cpc_master_locations')) {
+        if (! Schema::hasTable('cpc_master_functions')) {
             return;
         }
 
         $this->syncBranches();
 
-        $branchIdsByCode = Branch::query()
-            ->whereNotNull('code')
-            ->pluck('id', 'code');
-
-        $locations = DB::table('cpc_master_locations')
-            ->whereNotNull('location_name')
+        $functions = DB::table('cpc_master_functions')
+            ->whereNotNull('function_name')
             ->where(function ($query) {
                 $query->where('is_available', true)
                     ->orWhereNull('is_available');
             })
-            ->orderBy('location_name')
+            ->orderBy('function_name')
             ->get([
-                'source_location_id',
-                'location_name',
+                'source_function_id',
+                'function_name',
             ]);
 
-        foreach ($locations as $location) {
-            $name = trim((string) $location->location_name);
+        foreach ($functions as $function) {
+            $name = trim((string) $function->function_name);
 
             if ($name === '') {
                 continue;
@@ -78,14 +74,13 @@ class CpcMasterDataSyncService
 
             Department::updateOrCreate(
                 [
-                    'source_location_id' => $location->source_location_id,
+                    'code' => (string) $function->source_function_id,
                 ],
                 [
                     'name' => $name,
-                    'code' => (string) $location->source_location_id,
-                    'branch_id' => $branchIdsByCode->get(
-                        (string) $location->source_location_id
-                    ),
+                    'source_location_id' => null,
+                    'source_function_id' => $function->source_function_id,
+                    'branch_id' => null,
                     'is_active' => true,
                 ]
             );

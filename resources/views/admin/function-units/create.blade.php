@@ -330,6 +330,14 @@
         margin-bottom: 20px;
     }
 
+    .fu-duplicate-warning {
+        display: none;
+        margin-top: 8px;
+        color: #b42318;
+        font-size: 11px;
+        line-height: 1.5;
+    }
+
     .fu-form-label {
         display: block;
         margin-bottom: 7px;
@@ -907,6 +915,14 @@
                                     maxlength="100"
                                 >
 
+                                <div
+                                    id="cpc-duplicate-warning"
+                                    class="fu-duplicate-warning"
+                                    role="alert"
+                                >
+                                    This Function Unit already exists in CPC master data.
+                                </div>
+
                                 <div class="fu-field-help">
                                     Optional internal identification code.
                                 </div>
@@ -1010,6 +1026,7 @@
 
                     <button
                         type="submit"
+                        id="register-function-unit"
                         class="btn fu-btn fu-btn-primary"
                     >
                         <i class="bi bi-check-lg me-2"></i>
@@ -1079,3 +1096,46 @@
 </div>
 
 @endsection
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const departmentSelect = document.getElementById('department_id');
+        const nameInput = document.getElementById('name');
+        const codeInput = document.getElementById('code');
+        const submitButton = document.getElementById('register-function-unit');
+        const warning = document.getElementById('cpc-duplicate-warning');
+        const cpcSubFunctions = @json($cpcSubFunctions);
+
+        if (!departmentSelect || !nameInput || !codeInput || !submitButton || !warning) {
+            return;
+        }
+
+        const isDuplicate = function () {
+            const name = nameInput.value.trim().toLowerCase();
+            const code = codeInput.value.trim();
+
+            if (!departmentSelect.value || !name || !code) {
+                return false;
+            }
+
+            return cpcSubFunctions.some(function (subFunction) {
+                return String(subFunction.sub_function_name).trim().toLowerCase() === name
+                    && String(subFunction.source_sub_function_id).trim() === code;
+            });
+        };
+
+        const updateDuplicateState = function () {
+            const duplicate = isDuplicate();
+
+            submitButton.disabled = duplicate;
+            warning.style.display = duplicate ? 'block' : 'none';
+        };
+
+        departmentSelect.addEventListener('change', updateDuplicateState);
+        nameInput.addEventListener('input', updateDuplicateState);
+        codeInput.addEventListener('input', updateDuplicateState);
+        updateDuplicateState();
+    });
+</script>
+@endpush
