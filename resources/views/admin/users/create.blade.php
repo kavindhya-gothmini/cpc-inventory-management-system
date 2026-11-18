@@ -931,19 +931,19 @@
                                         @foreach ($employees as $employee)
 
                                             <option
-                                                value="{{ $employee->id }}"
-                                                data-epf="{{ $employee->epf_no }}"
-                                                data-name="{{ $employee->name }}"
-                                                data-designation="{{ $employee->designation }}"
-                                                data-branch="{{ optional($employee->branch)->name }}"
-                                                data-department="{{ optional($employee->department)->name }}"
-                                                data-function-unit="{{ optional($employee->functionUnit)->name }}"
-                                                {{ old('employee_id') == $employee->id ? 'selected' : '' }}
+                                                value="{{ $employee->source_epf_no }}"
+                                                data-epf="{{ $employee->source_epf_no }}"
+                                                data-name="{{ $employee->name_with_initials ?: $employee->full_name }}"
+                                                data-designation="{{ $employee->designation_name }}"
+                                                data-branch="{{ $employee->location_name }}"
+                                                data-department=""
+                                                data-function-unit="Function 105"
+                                                {{ old('employee_id') == $employee->source_epf_no ? 'selected' : '' }}
                                             >
 
-                                                {{ $employee->epf_no }}
+                                                {{ $employee->source_epf_no }}
                                                 -
-                                                {{ $employee->name }}
+                                                {{ $employee->name_with_initials ?: $employee->full_name }}
 
                                             </option>
 
