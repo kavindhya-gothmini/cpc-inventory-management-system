@@ -97,12 +97,23 @@ class FunctionUnitController extends Controller
             ],
         ]);
 
+        $name = strtolower(trim($validated['name']));
+        $code = trim((string) ($validated['code'] ?? ''));
+
         $duplicateExists = DB::table('cpc_master_sub_functions')
-            ->whereRaw(
-                'LOWER(TRIM(sub_function_name)) = ?',
-                [strtolower(trim($validated['name']))]
-            )
-            ->where('source_sub_function_id', $validated['code'] ?? '')
+            ->where(function ($query) use ($name, $code) {
+                $query->whereRaw(
+                    'LOWER(TRIM(sub_function_name)) = ?',
+                    [$name]
+                );
+
+                if ($code !== '') {
+                    $query->orWhere(
+                        'source_sub_function_id',
+                        $code
+                    );
+                }
+            })
             ->exists();
 
         if ($duplicateExists) {

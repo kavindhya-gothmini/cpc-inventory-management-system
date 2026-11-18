@@ -1121,7 +1121,7 @@
 
             return cpcSubFunctions.some(function (subFunction) {
                 return String(subFunction.sub_function_name).trim().toLowerCase() === name
-                    && String(subFunction.source_sub_function_id).trim() === code;
+                    || String(subFunction.source_sub_function_id).trim() === code;
             });
         };
 
