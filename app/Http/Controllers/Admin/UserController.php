@@ -191,8 +191,8 @@ class UserController extends Controller
 
             'employee_id' => [
                 'required',
-                'integer',
-                'exists:employees,id',
+                'string',
+                'regex:/^(?:EPF)?[0-9]{5}$/',
             ],
 
 
@@ -315,9 +315,69 @@ class UserController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $employee = Employee::findOrFail(
-            $validated['employee_id']
-        );
+        $selectedEpf = strtoupper(trim($validated['employee_id']));
+        $normalizedEpf = $this->normalizeCpcEpf($selectedEpf);
+
+        $cpcEmployee = DB::table('cpc_master_employees as c')
+            ->leftJoin(
+                'cpc_master_designations as d',
+                'd.source_designation_id',
+                '=',
+                'c.source_designation_id'
+            )
+            ->leftJoin(
+                'cpc_master_locations as l',
+                'l.source_location_id',
+                '=',
+                'c.source_location_id'
+            )
+            ->where('c.source_function_id', 105)
+            ->where('c.is_available', 1)
+            ->whereIn('c.source_epf_no', [
+                $selectedEpf,
+                $normalizedEpf,
+                'EPF' . $normalizedEpf,
+            ])
+            ->select([
+                'c.source_epf_no',
+                'c.name_with_initials',
+                'c.full_name',
+                'd.designation_name',
+                'l.local_branch_id',
+            ])
+            ->first();
+
+        if (! $cpcEmployee) {
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'employee_id' =>
+                        'This employee is not available under CPC function ID 105.',
+                ]);
+        }
+
+        $employee = Employee::whereIn('epf_no', [
+            $selectedEpf,
+            $normalizedEpf,
+            'EPF' . $normalizedEpf,
+        ])
+            ->first();
+
+        if (! $employee) {
+            $employee = Employee::create([
+                'epf_no' => $normalizedEpf,
+                'name' => trim(
+                    (string) (
+                        $cpcEmployee->name_with_initials
+                        ?: $cpcEmployee->full_name
+                    )
+                ),
+                'designation' => $cpcEmployee->designation_name,
+                'branch_id' => $cpcEmployee->local_branch_id,
+                'department_id' => null,
+                'function_unit_id' => null,
+            ]);
+        }
 
 
         /*
@@ -1008,6 +1068,40 @@ class UserController extends Controller
             );
     }
 
+    private function normalizeCpcEpf(string $epf): ?string
+    {
+        $epf = strtoupper(trim($epf));
+
+        if (preg_match('/^EPF([0-9]{5})$/', $epf, $matches)) {
+            return $matches[1];
+        }
+
+        return preg_match('/^[0-9]{5}$/', $epf)
+            ? $epf
+            : null;
+    }
+
+    private function employeeBelongsToCpcFunction(
+        Employee $employee,
+        int $functionId
+    ): bool {
+        $epf = trim((string) $employee->epf_no);
+        $normalizedEpf = $this->normalizeCpcEpf($epf);
+
+        if (! $normalizedEpf) {
+            return false;
+        }
+
+        return DB::table('cpc_master_employees')
+            ->where('source_function_id', $functionId)
+            ->where('is_available', 1)
+            ->whereIn('source_epf_no', [
+                $epf,
+                $normalizedEpf,
+                'EPF' . $normalizedEpf,
+            ])
+            ->exists();
+    }
 
     /*
     |--------------------------------------------------------------------------
