@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\Department;
+use App\Services\CpcMasterDataSyncService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class DepartmentController extends Controller
 {
@@ -33,7 +33,7 @@ class DepartmentController extends Controller
     {
         $this->ensureSuperAdmin();
 
-        $this->syncBranchesFromMasterLocations();
+        app(CpcMasterDataSyncService::class)->syncBranches();
 
         $branches = Branch::where('is_active', true)
             ->orderBy('name')
@@ -116,7 +116,7 @@ class DepartmentController extends Controller
     {
         $this->ensureSuperAdmin();
 
-        $this->syncBranchesFromMasterLocations();
+        app(CpcMasterDataSyncService::class)->syncBranches();
 
         $branches = Branch::where('is_active', true)
             ->orderBy('name')
@@ -208,43 +208,4 @@ class DepartmentController extends Controller
         }
     }
 
-    /**
-     * Keep local branch records available for departments in sync with CPC
-     * location master data.
-     */
-    private function syncBranchesFromMasterLocations(): void
-    {
-        if (! DB::getSchemaBuilder()->hasTable('cpc_master_locations')) {
-            return;
-        }
-
-        $locations = DB::table('cpc_master_locations')
-            ->whereNotNull('location_name')
-            ->where(function ($query) {
-                $query->where('is_available', true)
-                    ->orWhereNull('is_available');
-            })
-            ->orderBy('location_name')
-            ->get([
-                'source_location_id',
-                'location_name',
-            ]);
-
-        foreach ($locations as $location) {
-            $name = trim((string) $location->location_name);
-
-            if ($name === '') {
-                continue;
-            }
-
-            Branch::updateOrCreate(
-                ['code' => (string) $location->source_location_id],
-                [
-                    'name' => $name,
-                    'location' => $name,
-                    'is_active' => true,
-                ]
-            );
-        }
-    }
 }
