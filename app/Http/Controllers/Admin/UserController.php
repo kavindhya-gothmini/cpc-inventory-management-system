@@ -50,7 +50,14 @@ class UserController extends Controller
     {
         app(CpcMasterDataSyncService::class)->syncBranches();
 
-        $cacheEmployees = DB::table('cpc_master_employees as e')
+        $existingEpfs = User::query()
+            ->whereNotNull('epf_number')
+            ->pluck('epf_number')
+            ->map(fn ($epf) => $this->normalizeCpcEpf((string) $epf))
+            ->filter()
+            ->all();
+
+        $employees = DB::table('cpc_master_employees as e')
             ->leftJoin(
                 'cpc_master_locations as l',
                 'l.source_location_id',
@@ -69,102 +76,25 @@ class UserController extends Controller
                 '=',
                 'e.source_sub_function_id'
             )
-            ->where('e.is_available', true)
             ->where('e.source_function_id', 105)
-            ->whereNotNull('l.local_branch_id')
             ->orderBy('e.full_name')
             ->get([
                 'e.source_epf_no',
                 'e.full_name',
                 'e.name_with_initials',
-                'e.source_location_id',
-                'e.source_sub_function_id',
-                'e.source_function_id',
-                'e.source_designation_id',
-                'l.local_branch_id',
                 'd.designation_name',
                 'sf.sub_function_name',
-            ]);
+                'l.location_name',
+            ])
+            ->filter(function ($employee) use ($existingEpfs) {
+                $epf = $this->normalizeCpcEpf(
+                    (string) $employee->source_epf_no
+                );
 
-        foreach ($cacheEmployees as $cacheEmployee) {
-            $epf = preg_replace(
-                '/\D/',
-                '',
-                (string) $cacheEmployee->source_epf_no
-            );
-
-            if (! preg_match('/^[0-9]{5}$/', $epf)) {
-                continue;
-            }
-
-            $department = Department::where(
-                'source_function_id',
-                $cacheEmployee->source_function_id
-            )
-                ->where('branch_id', $cacheEmployee->local_branch_id)
-                ->first();
-
-            if (! $department) {
-                $department = Department::where(
-                    'source_function_id',
-                    $cacheEmployee->source_function_id
-                )->first();
-            }
-
-            $functionUnit = null;
-
-            if ($cacheEmployee->source_sub_function_id) {
-                $functionUnit = FunctionUnit::where(
-                    'code',
-                    (string) $cacheEmployee->source_sub_function_id
-                )->first();
-
-                if (! $functionUnit && $department) {
-                    $functionUnit = FunctionUnit::create([
-                        'name' => $cacheEmployee->sub_function_name
-                            ?: 'CPC Sub-function '
-                                . $cacheEmployee->source_sub_function_id,
-                        'code' => (string) $cacheEmployee->source_sub_function_id,
-                        'department_id' => $department->id,
-                        'is_active' => true,
-                    ]);
-                }
-            }
-
-            $name = trim(
-                (string) ($cacheEmployee->full_name
-                    ?: $cacheEmployee->name_with_initials
-                    ?: '')
-            );
-
-            if ($name === '' || ! $department) {
-                continue;
-            }
-
-            Employee::updateOrCreate(
-                ['epf_no' => $epf],
-                [
-                    'name' => $name,
-                    'designation' => $cacheEmployee->designation_name,
-                    'branch_id' => $cacheEmployee->local_branch_id,
-                    'department_id' => $department->id,
-                    'function_unit_id' => $functionUnit?->id,
-                    'is_active' => true,
-                ]
-            );
-        }
-
-        $employees = Employee::with([
-            'branch',
-            'department',
-            'functionUnit',
-        ])
-            ->whereDoesntHave('user')
-            ->whereHas('department', function ($query) {
-                $query->where('source_function_id', 105);
+                return $epf !== null
+                    && ! in_array($epf, $existingEpfs, true);
             })
-            ->orderBy('name')
-            ->get();
+            ->values();
 
         return view(
             'admin.users.create',
@@ -332,7 +262,6 @@ class UserController extends Controller
                 'c.source_location_id'
             )
             ->where('c.source_function_id', 105)
-            ->where('c.is_available', 1)
             ->whereIn('c.source_epf_no', [
                 $selectedEpf,
                 $normalizedEpf,
@@ -1094,7 +1023,6 @@ class UserController extends Controller
 
         return DB::table('cpc_master_employees')
             ->where('source_function_id', $functionId)
-            ->where('is_available', 1)
             ->whereIn('source_epf_no', [
                 $epf,
                 $normalizedEpf,
