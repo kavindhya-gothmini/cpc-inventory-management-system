@@ -1500,7 +1500,12 @@
 
 
                 {{-- SEARCH TOOLBAR --}}
-                <div class="inventory-toolbar">
+                <form
+                    class="inventory-toolbar"
+                    method="GET"
+                    action="{{ route('admin.items.index') }}"
+                    id="inventorySearchForm"
+                >
 
                     <div class="inventory-search">
 
@@ -1509,6 +1514,8 @@
                         <input
                             type="text"
                             id="inventorySearch"
+                            name="search"
+                            value="{{ request('search') }}"
                             placeholder="Search asset, type, serial, IP..."
                             autocomplete="off"
                             maxlength="100"
@@ -1529,7 +1536,7 @@
 
                     </button>
 
-                </div>
+                </form>
 
             </div>
 
@@ -2302,6 +2309,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const resetButton =
         document.getElementById('inventoryReset');
 
+    const searchForm =
+        document.getElementById('inventorySearchForm');
+
     const table =
         document.getElementById('inventoryTable');
 
@@ -2447,7 +2457,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 searchInput.value = '';
 
-                filterInventory();
+                if (searchForm) {
+                    window.location.href = searchForm.action;
+                } else {
+                    filterInventory();
+                }
 
                 searchInput.focus();
 
@@ -2471,12 +2485,9 @@ document.addEventListener('DOMContentLoaded', function () {
         'keydown',
         function (event) {
 
-            if (event.key === 'Enter') {
-
+            if (event.key === 'Enter' && searchForm) {
                 event.preventDefault();
-
-                filterInventory();
-
+                searchForm.submit();
             }
 
         }
