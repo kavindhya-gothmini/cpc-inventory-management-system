@@ -29,6 +29,18 @@ class ItemController extends Controller
     {
         $user = $request->user();
 
+        $validated = $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+        ]);
+
+        $search = trim(
+            preg_replace(
+                '/\s+/',
+                ' ',
+                (string) ($validated['search'] ?? '')
+            )
+        );
+
         $branchId = $user->branch_id
             ?? $user->employee?->branch_id;
 
@@ -44,6 +56,59 @@ class ItemController extends Controller
             } else {
                 $query->where('branch_id', $branchId);
             }
+        }
+
+        if ($search !== '') {
+            $searchTerm = '%' . $search . '%';
+            $statusSearchTerm = '%' . str_replace(' ', '_', $search) . '%';
+
+            $query->where(function ($searchQuery) use (
+                $searchTerm,
+                $statusSearchTerm
+            ) {
+                $searchQuery
+                    ->where('asset_number', 'like', $searchTerm)
+                    ->orWhere('serial_number', 'like', $searchTerm)
+                    ->orWhere('ip_address', 'like', $searchTerm)
+                    ->orWhere('workstation_id', 'like', $searchTerm)
+                    ->orWhere('make', 'like', $searchTerm)
+                    ->orWhere('model', 'like', $searchTerm)
+                    ->orWhere('status', 'like', $statusSearchTerm)
+                    ->orWhereHas(
+                        'itemType',
+                        fn ($relationQuery) => $relationQuery
+                            ->where('name', 'like', $searchTerm)
+                    )
+                    ->orWhereHas(
+                        'make',
+                        fn ($relationQuery) => $relationQuery
+                            ->where('name', 'like', $searchTerm)
+                    )
+                    ->orWhereHas(
+                        'itemModel',
+                        fn ($relationQuery) => $relationQuery
+                            ->where('name', 'like', $searchTerm)
+                    )
+                    ->orWhereHas(
+                        'currentEmployee',
+                        fn ($relationQuery) => $relationQuery
+                            ->where(function ($employeeQuery) use (
+                                $searchTerm
+                            ) {
+                                $employeeQuery
+                                    ->where(
+                                        'name',
+                                        'like',
+                                        $searchTerm
+                                    )
+                                    ->orWhere(
+                                        'epf_no',
+                                        'like',
+                                        $searchTerm
+                                    );
+                            })
+                    );
+            });
         }
 
         $items = (clone $query)
