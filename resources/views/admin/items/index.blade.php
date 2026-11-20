@@ -509,14 +509,19 @@
         flex-wrap: wrap;
     }
 
+    .inventory-search-group {
+        display: flex;
+        align-items: center;
+    }
+
     .inventory-search {
-        width: 280px;
+        width: 360px;
         height: 41px;
         display: flex;
         align-items: center;
         overflow: hidden;
         border: 1px solid #dfe4ec;
-        border-radius: 9px;
+        border-radius: 9px 0 0 9px;
         background: #f8f9fb;
         transition: all .2s ease;
     }
@@ -546,6 +551,36 @@
 
     .inventory-search input::placeholder {
         color: #9aa4b3;
+    }
+
+    .inventory-search-button {
+        height: 41px;
+        min-width: 88px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        margin-left: -1px;
+        padding: 0 14px;
+        border: 1px solid #0d6efd;
+        border-radius: 0 9px 9px 0;
+        background: #0d6efd;
+        color: #ffffff;
+        font-size: 12px;
+        font-weight: 700;
+        transition: all .2s ease;
+    }
+
+    .inventory-search-button:hover {
+        border-color: #0b5ed7;
+        background: #0b5ed7;
+    }
+
+    .inventory-search-button:focus-visible {
+        position: relative;
+        z-index: 2;
+        outline: 3px solid rgba(13, 110, 253, 0.18);
+        outline-offset: 2px;
     }
 
     .inventory-reset {
@@ -1001,6 +1036,10 @@
             width: 100%;
         }
 
+        .inventory-search-group {
+            width: 100%;
+        }
+
         .inventory-search {
             flex: 1;
             width: auto;
@@ -1056,8 +1095,17 @@
             align-items: stretch;
         }
 
-        .inventory-search {
+        .inventory-search-group {
             width: 100%;
+        }
+
+        .inventory-search {
+            width: calc(100% - 88px);
+        }
+
+        .inventory-search-button {
+            min-width: 88px;
+            width: 88px;
         }
 
         .inventory-reset {
@@ -1502,19 +1550,29 @@
                 {{-- SEARCH TOOLBAR --}}
                 <div class="inventory-toolbar">
 
-                    <div class="inventory-search">
+                    <div class="inventory-search-group">
+                        <div class="inventory-search">
+                            <i class="bi bi-search inventory-search-icon"></i>
 
-                        <i class="bi bi-search inventory-search-icon"></i>
+                            <input
+                                type="text"
+                                id="inventorySearch"
+                                placeholder="Search asset number, type, serial or IP..."
+                                autocomplete="off"
+                                maxlength="100"
+                                aria-label="Search inventory"
+                            >
+                        </div>
 
-                        <input
-                            type="text"
-                            id="inventorySearch"
-                            placeholder="Search asset, type, serial, IP..."
-                            autocomplete="off"
-                            maxlength="100"
+                        <button
+                            type="button"
+                            id="inventorySearchButton"
+                            class="inventory-search-button"
                             aria-label="Search inventory"
                         >
-
+                            <i class="bi bi-search"></i>
+                            Search
+                        </button>
                     </div>
 
                     <button
@@ -2299,6 +2357,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const searchInput =
         document.getElementById('inventorySearch');
 
+    const searchButton =
+        document.getElementById('inventorySearchButton');
+
     const resetButton =
         document.getElementById('inventoryReset');
 
@@ -2450,6 +2511,22 @@ document.addEventListener('DOMContentLoaded', function () {
                 filterInventory();
 
                 searchInput.focus();
+
+            }
+
+            if (searchButton) {
+
+                searchButton.addEventListener(
+                    'click',
+                    function () {
+
+                        searchInput.value =
+                            searchInput.value.trim();
+
+                        filterInventory();
+
+                    }
+                );
 
             }
         );
