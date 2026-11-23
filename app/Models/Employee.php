@@ -24,6 +24,7 @@ class Employee extends Model
         'function_unit_id',
         'email',
         'phone',
+        'is_active',
     ];
 
     /*
