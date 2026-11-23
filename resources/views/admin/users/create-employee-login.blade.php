@@ -58,12 +58,12 @@
 
                     <div class="col-md-auto">
                         <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-search"></i> Search Both Databases
+                            <i class="bi bi-search"></i> Search
                         </button>
                     </div>
                 </div>
                 <div class="form-text mt-2">
-                    Searches CPC HAPIS in read-only mode and checks the local MySQL employee record.
+                    Searches live CPC HAPIS, falls back to the CPC master cache, and checks the local MySQL employee record.
                 </div>
             </form>
         </div>
@@ -194,7 +194,7 @@
                     <div class="alert alert-warning mb-0">
                         No local MySQL employee record exists for EPF
                         <strong>{{ request('epf_no') }}</strong>.
-                        HAPIS data is not automatically copied into MySQL. An authorized administrator must first register the employee locally and verify the correct branch and department.
+                        The CPC source location does not have a mapped local branch. An authorized administrator must first map the source location to a branch.
                     </div>
                 @endif
             </div>
@@ -231,20 +231,12 @@
             <div class="alert alert-warning">
                 The local employee has no valid active branch. Verify the branch assignment before creating a login.
             </div>
-        @elseif (
-            !$employee->department_id
-            || !$employee->department
-            || (int) $employee->department->branch_id !== (int) $employee->branch_id
-        )
-            <div class="alert alert-warning">
-                The local employee does not have a valid department belonging to the assigned branch. Correct the local record before creating a login.
-            </div>
         @else
             <div class="card border-0 shadow-sm">
                 <div class="card-body p-4">
                     <h5 class="fw-semibold mb-2">4. Create Employee Login</h5>
                     <p class="text-muted">
-                        Verify the employee identity and local branch/department assignment before proceeding.
+                        Verify the employee identity and local branch assignment before proceeding.
                     </p>
 
                     <form method="POST"
@@ -277,15 +269,26 @@
                             <label for="password" class="form-label fw-semibold">
                                 Initial Password
                             </label>
-                            <input
-                                type="password"
-                                id="password"
-                                name="password"
-                                class="form-control"
-                                minlength="12"
-                                autocomplete="new-password"
-                                required
-                            >
+                            <div class="input-group">
+                                <input
+                                    type="password"
+                                    id="password"
+                                    name="password"
+                                    class="form-control"
+                                    minlength="12"
+                                    autocomplete="new-password"
+                                    required
+                                >
+                                <button
+                                    type="button"
+                                    class="btn btn-outline-secondary password-toggle"
+                                    data-password-target="password"
+                                    aria-label="Show password"
+                                    title="Show password"
+                                >
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
                             <div class="form-text">
                                 At least 12 characters, including uppercase and lowercase letters, a number, and a symbol.
                             </div>
@@ -296,20 +299,31 @@
                                    class="form-label fw-semibold">
                                 Confirm Initial Password
                             </label>
-                            <input
-                                type="password"
-                                id="password_confirmation"
-                                name="password_confirmation"
-                                class="form-control"
-                                minlength="12"
-                                autocomplete="new-password"
-                                required
-                            >
+                            <div class="input-group">
+                                <input
+                                    type="password"
+                                    id="password_confirmation"
+                                    name="password_confirmation"
+                                    class="form-control"
+                                    minlength="12"
+                                    autocomplete="new-password"
+                                    required
+                                >
+                                <button
+                                    type="button"
+                                    class="btn btn-outline-secondary password-toggle"
+                                    data-password-target="password_confirmation"
+                                    aria-label="Show password"
+                                    title="Show password"
+                                >
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
                         </div>
 
                         <div class="alert alert-warning border">
                             <i class="bi bi-shield-check"></i>
-                            HAPIS provides the source employee information. The local MySQL branch and department determine the account's local scope.
+                            HAPIS provides the source employee information. The mapped local MySQL branch determines the account's local scope.
                             Do not proceed unless you have verified that the local assignment is correct.
                         </div>
 
@@ -324,7 +338,7 @@
                                 {{ old('branch_verified') ? 'checked' : '' }}
                             >
                             <label class="form-check-label" for="branch_verified">
-                                I have verified the employee's identity and confirmed that the local branch and department are correct for the HAPIS source location.
+                                I have verified the employee's identity and confirmed that the local branch is correct for the HAPIS source location.
                             </label>
                         </div>
 
@@ -344,3 +358,33 @@
     @endif
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.password-toggle').forEach(function (button) {
+        button.addEventListener('click', function () {
+            const input = document.getElementById(
+                button.dataset.passwordTarget
+            );
+
+            if (!input) {
+                return;
+            }
+
+            const showPassword = input.type === 'password';
+            input.type = showPassword ? 'text' : 'password';
+
+            const icon = button.querySelector('i');
+            icon.classList.toggle('bi-eye', !showPassword);
+            icon.classList.toggle('bi-eye-slash', showPassword);
+
+            const label = showPassword ? 'Hide password' : 'Show password';
+            button.setAttribute('aria-label', label);
+            button.setAttribute('title', label);
+            input.focus();
+        });
+    });
+});
+</script>
+@endpush

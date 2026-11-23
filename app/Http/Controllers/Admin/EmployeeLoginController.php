@@ -37,7 +37,7 @@ class EmployeeLoginController extends Controller
         if ($hapisLookupAttempted) {
             $epf = trim((string) $request->input('epf_no'));
 
-            // Read-only search against CPC HAPIS.
+            // Search live CPC HAPIS, with the local CPC master cache fallback.
             try {
                 $sourceEmployee = $hapis->findByEpf($epf);
             } catch (Throwable $exception) {
@@ -51,8 +51,24 @@ class EmployeeLoginController extends Controller
                 'department',
                 'functionUnit',
             ])
-                ->where('epf_no', $epf)
+                ->whereIn('epf_no', [$epf, 'EPF' . $epf])
                 ->first();
+
+            if (! $employee && $sourceEmployee && $sourceEmployee->local_branch_id) {
+                $employee = Employee::create([
+                    'epf_no' => $epf,
+                    'name' => $sourceEmployee->employee_name ?: $epf,
+                    'designation' => $sourceEmployee->designation,
+                    'branch_id' => $sourceEmployee->local_branch_id,
+                    'department_id' => null,
+                    'function_unit_id' => null,
+                    'is_active' => (bool) $sourceEmployee->is_available,
+                ]);
+            } elseif ($employee && $sourceEmployee) {
+                $employee->update([
+                    'is_active' => (bool) $sourceEmployee->is_available,
+                ]);
+            }
 
             if ($employee) {
                 $existingUser = $this->findEmployeeUser($employee);
@@ -100,7 +116,7 @@ class EmployeeLoginController extends Controller
             'epf_no.regex' =>
                 'Enter a valid five-digit EPF number.',
             'branch_verified.accepted' =>
-                'Confirm that the local branch and department were verified before creating the login.',
+                'Confirm that the local branch was verified before creating the login.',
             'email.unique' =>
                 'This email address is already linked to a login account.',
             'password.confirmed' =>
@@ -127,26 +143,39 @@ class EmployeeLoginController extends Controller
             ]);
         }
 
-        $user = DB::transaction(function () use ($validated) {
+        $user = DB::transaction(function () use ($validated, $sourceEmployee) {
             $employee = Employee::with([
                 'branch',
                 'department',
             ])
-                ->where('epf_no', $validated['epf_no'])
+                ->whereIn('epf_no', [
+                    $validated['epf_no'],
+                    'EPF' . $validated['epf_no'],
+                ])
                 ->lockForUpdate()
                 ->first();
 
             if (! $employee) {
-                throw ValidationException::withMessages([
-                    'epf_no' =>
-                        'No matching local employee record exists. Register and verify the local employee record first.',
-                ]);
-            }
+                if (! $sourceEmployee->local_branch_id) {
+                    throw ValidationException::withMessages([
+                        'epf_no' =>
+                            'The CPC source location is not mapped to a local branch.',
+                    ]);
+                }
 
-            if (! $employee->is_active) {
-                throw ValidationException::withMessages([
-                    'epf_no' =>
-                        'This local employee record is inactive.',
+                $employee = Employee::create([
+                    'epf_no' => $validated['epf_no'],
+                    'name' => $sourceEmployee->employee_name
+                        ?: $validated['epf_no'],
+                    'designation' => $sourceEmployee->designation,
+                    'branch_id' => $sourceEmployee->local_branch_id,
+                    'department_id' => null,
+                    'function_unit_id' => null,
+                    'is_active' => (bool) $sourceEmployee->is_available,
+                ]);
+            } else {
+                $employee->update([
+                    'is_active' => (bool) $sourceEmployee->is_available,
                 ]);
             }
 
@@ -158,18 +187,6 @@ class EmployeeLoginController extends Controller
                 throw ValidationException::withMessages([
                     'epf_no' =>
                         'The local employee must have a valid active branch before a login can be created.',
-                ]);
-            }
-
-            if (
-                ! $employee->department_id
-                || ! $employee->department
-                || (int) $employee->department->branch_id
-                    !== (int) $employee->branch_id
-            ) {
-                throw ValidationException::withMessages([
-                    'epf_no' =>
-                        'The local employee must have a valid department belonging to the assigned branch.',
                 ]);
             }
 
