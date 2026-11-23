@@ -196,6 +196,17 @@ Route::prefix('admin')
         'role:admin,employee,super_admin',
     ])
     ->group(function () {
+        Route::middleware('role:admin,super_admin')->group(function () {
+            Route::get(
+                'fault-reports',
+                [FaultReportController::class, 'adminIndex']
+            )->name('fault-reports.index');
+
+            Route::put(
+                'fault-reports/{faultReport}',
+                [FaultReportController::class, 'update']
+            )->name('fault-reports.update');
+        });
 
         /*
         |--------------------------------------------------------------------------

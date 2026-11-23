@@ -929,7 +929,30 @@ $isEmployee = $currentUser
              ALL ROLES
         ================================================== --}}
 
-        @if(Route::has('dashboard'))
+        @if(
+            $isEmployee
+            && Route::has('employee.dashboard')
+        )
+
+            <a
+                href="{{ route('employee.dashboard') }}"
+                class="sidebar-link
+                    {{
+                        request()->routeIs('employee.dashboard')
+                            ? 'active'
+                            : ''
+                    }}"
+            >
+
+                <i class="bi bi-speedometer2"></i>
+
+                <span>
+                    Dashboard
+                </span>
+
+            </a>
+
+        @elseif(Route::has('dashboard'))
 
             <a
                 href="{{ route('dashboard') }}"
@@ -951,7 +974,29 @@ $isEmployee = $currentUser
 
         @endif
 
+        @if(
+            $isEmployee
+            && Route::has('fault-reports.index')
+        )
+            <div class="sidebar-section-title">
+                User Dashboard
+            </div>
 
+            <a
+                href="{{ route('fault-reports.index') }}"
+                class="sidebar-link
+                    {{
+                        request()->routeIs('fault-reports.*')
+                            ? 'active'
+                            : ''
+                    }}"
+            >
+                <i class="bi bi-tools"></i>
+                <span>My Fault Reports</span>
+            </a>
+        @endif
+
+        @if(!$isEmployee)
         {{-- =================================================
              ORGANIZATION
         ================================================== --}}
@@ -1592,6 +1637,20 @@ $isEmployee = $currentUser
             System
         </div>
 
+        @if(
+            auth()->check()
+            && in_array(auth()->user()->role, ['admin', 'super_admin'], true)
+            && Route::has('admin.fault-reports.index')
+        )
+            <a
+                href="{{ route('admin.fault-reports.index') }}"
+                class="sidebar-link
+                    {{ request()->routeIs('admin.fault-reports.*') ? 'active' : '' }}"
+            >
+                <i class="bi bi-tools"></i>
+                <span>Fault Reports</span>
+            </a>
+        @endif
 
         {{-- =================================================
              REPORTS
@@ -1674,7 +1733,7 @@ $isEmployee = $currentUser
             @endif
 
         @endif
-
+        @endif
 
     </nav>
 
