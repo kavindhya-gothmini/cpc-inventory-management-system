@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Models\Employee;
 
 class FaultReport extends Model
 {
@@ -22,6 +23,7 @@ class FaultReport extends Model
         'priority',
         'status',
         'assigned_to',
+        'assigned_employee_id',
         'it_response',
         'resolution_notes',
         'resolved_at',
@@ -58,6 +60,14 @@ class FaultReport extends Model
         return $this->belongsTo(
             User::class,
             'assigned_to'
+        );
+    }
+
+    public function assignedEmployee(): BelongsTo
+    {
+        return $this->belongsTo(
+            Employee::class,
+            'assigned_employee_id'
         );
     }
 }

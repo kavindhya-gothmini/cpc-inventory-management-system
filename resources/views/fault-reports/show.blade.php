@@ -211,6 +211,35 @@
         overflow-wrap: anywhere;
     }
 
+    .fault-select,
+    .fault-textarea {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #d8dee8;
+        border-radius: 7px;
+        background: #fff;
+        color: #344054;
+        font-size: 12px;
+    }
+
+    .fault-textarea {
+        resize: vertical;
+    }
+
+    .fault-btn-primary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 11px 14px;
+        border: 1px solid #0d6efd;
+        border-radius: 7px;
+        background: #0d6efd;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
     .fault-description {
         margin-top: 23px;
         padding-top: 21px;
@@ -441,9 +470,12 @@
             </p>
         </div>
 
-        <a href="{{ route('fault-reports.index') }}" class="fault-btn">
+        <a
+            href="{{ $isFaultReportAdmin ? route('admin.fault-reports.index') : route('fault-reports.index') }}"
+            class="fault-btn"
+        >
             <i class="fas fa-arrow-left"></i>
-            Back to My Reports
+            {{ $isFaultReportAdmin ? 'Back to Fault Reports' : 'Back to My Reports' }}
         </a>
     </div>
 
@@ -663,7 +695,9 @@
                                 <div class="fault-side-label">Assigned IT Staff</div>
 
                                 <div class="fault-side-value">
-                                    {{ $report->assignedUser?->name ?? 'Not yet assigned' }}
+                                    {{ $report->assignedEmployee?->name
+                                        ?? $report->assignedUser?->name
+                                        ?? 'Not yet assigned' }}
                                 </div>
                             </div>
                         </li>
@@ -671,6 +705,110 @@
                     </ul>
                 </div>
             </div>
+
+            @if ($isFaultReportAdmin)
+                <div class="fault-card">
+                    <div class="fault-card-header">
+                        <h2>Admin Handling</h2>
+                        <p>Assign an employee and update report progress.</p>
+                    </div>
+
+                    <div class="fault-card-body">
+                        <form
+                            method="POST"
+                            action="{{ route('admin.fault-reports.update', $report) }}"
+                        >
+                            @csrf
+                            @method('PUT')
+
+                            <div class="mb-3">
+                                <label for="assigned_to" class="fault-info-label">
+                                    Assigned Employee
+                                </label>
+                                <select
+                                    id="assigned_to"
+                                    name="assigned_employee_epf"
+                                    class="fault-select"
+                                >
+                                    <option value="">Unassigned</option>
+                                    @foreach ($assignedEmployees as $employee)
+                                        <option
+                                            value="{{ $employee->epf_no }}"
+                                            @selected(
+                                                $report->assignedEmployee
+                                                && preg_replace('/^EPF/', '', strtoupper($report->assignedEmployee->epf_no))
+                                                    === preg_replace('/^EPF/', '', strtoupper($employee->epf_no))
+                                            )
+                                        >
+                                            {{ $employee->name_with_initials ?: $employee->full_name }}
+                                            — EPF {{ $employee->epf_no }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="status" class="fault-info-label">
+                                    Report Status
+                                </label>
+                                <select
+                                    id="status"
+                                    name="status"
+                                    class="fault-select"
+                                    required
+                                >
+                                    @foreach ([
+                                        'submitted' => 'Submitted',
+                                        'under_review' => 'Under Review',
+                                        'in_progress' => 'In Progress',
+                                        'waiting_for_user' => 'Waiting for User',
+                                        'resolved' => 'Resolved',
+                                        'closed' => 'Closed',
+                                    ] as $statusValue => $statusText)
+                                        <option
+                                            value="{{ $statusValue }}"
+                                            @selected($report->status === $statusValue)
+                                        >
+                                            {{ $statusText }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="it_response" class="fault-info-label">
+                                    IT Response
+                                </label>
+                                <textarea
+                                    id="it_response"
+                                    name="it_response"
+                                    class="fault-textarea"
+                                    maxlength="10000"
+                                    rows="4"
+                                >{{ old('it_response', $report->it_response) }}</textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="resolution_notes" class="fault-info-label">
+                                    Resolution Notes
+                                </label>
+                                <textarea
+                                    id="resolution_notes"
+                                    name="resolution_notes"
+                                    class="fault-textarea"
+                                    maxlength="10000"
+                                    rows="4"
+                                >{{ old('resolution_notes', $report->resolution_notes) }}</textarea>
+                            </div>
+
+                            <button type="submit" class="fault-btn-primary w-100">
+                                <i class="fas fa-save"></i>
+                                Save Report Update
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            @endif
 
             <div class="fault-card">
                 <div class="fault-card-header">
