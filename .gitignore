@@ -54,3 +54,4 @@ Homestead.yaml
 employee-dashboard-*.txt
 qa_cpc_mappings.php
 *.backup-*
+package-lock.json
