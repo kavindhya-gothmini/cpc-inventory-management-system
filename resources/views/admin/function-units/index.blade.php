@@ -585,10 +585,10 @@
     }
 
     .fu-unit-icon {
-        width: 43px;
-        height: 43px;
-        min-width: 43px;
-        border-radius: 11px;
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        border-radius: 9px;
         background: linear-gradient(
             135deg,
             #edf5ff,
@@ -598,7 +598,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 17px;
+        font-size: 14px;
     }
 
     .fu-unit-name {
@@ -655,16 +655,16 @@
     }
 
     .fu-department-icon {
-        width: 29px;
-        height: 29px;
-        min-width: 29px;
-        border-radius: 8px;
+        width: 26px;
+        height: 26px;
+        min-width: 26px;
+        border-radius: 7px;
         background: #f3f6fa;
         color: #667085;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 11px;
+        font-size: 10px;
     }
 
     .fu-not-assigned {
@@ -717,22 +717,133 @@
         display: flex;
         justify-content: flex-end;
         align-items: center;
-        gap: 5px;
+        gap: 4px;
+        flex-wrap: nowrap;
+        white-space: nowrap;
+    }
+
+    .fu-action-group form {
+        display: inline-flex;
+        margin: 0;
     }
 
     .fu-action {
-        width: 33px;
-        height: 33px;
+        width: 30px;
+        height: 30px;
+        min-width: 30px;
         padding: 0;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        border-radius: 8px;
+        border-radius: 7px;
+        line-height: 1;
+        background: #ffffff;
         transition: all 0.2s ease;
+    }
+
+    .fu-action i {
+        font-size: 11px;
+        line-height: 1;
     }
 
     .fu-action:hover {
         transform: translateY(-1px);
+    }
+
+    .department-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 5px;
+    }
+
+    .department-action {
+        width: 30px;
+        height: 30px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 7px;
+        background: #ffffff;
+        font-size: 11px;
+        transition:
+            transform 0.15s ease,
+            background 0.15s ease,
+            border-color 0.15s ease;
+    }
+
+    .department-action:hover {
+        transform: translateY(-1px);
+    }
+
+    .department-action-view {
+        border: 1px solid #cfe0f8;
+        color: #2f80ed;
+    }
+
+    .department-action-view:hover {
+        background: #eaf3ff;
+    }
+
+    .department-action-edit {
+        border: 1px solid #d7e3ed;
+        color: #557287;
+    }
+
+    .department-action-edit:hover {
+        background: #f1f7fa;
+        border-color: #c7dbe6;
+        color: #1683a7;
+    }
+
+    .department-action-delete {
+        border: 1px solid #f0caca;
+        color: #c0392b;
+    }
+
+    .department-action-delete:hover {
+        background: #fff1f1;
+    }
+
+    .fu-action.btn-outline-primary {
+        border-color: #cfe0f8;
+        color: #2f80ed;
+    }
+
+    .fu-action.btn-outline-primary:hover {
+        background: #eaf3ff;
+        border-color: #cfe0f8;
+    }
+
+    .fu-action.btn-outline-secondary {
+        border-color: #d7e3ed;
+        color: #557287;
+    }
+
+    .fu-action.btn-outline-secondary:hover {
+        background: #f1f7fa;
+        border-color: #c7dbe6;
+        color: #1683a7;
+    }
+
+    .fu-action.btn-outline-danger {
+        border-color: #f0caca;
+        color: #c0392b;
+    }
+
+    .fu-action.btn-outline-danger:hover {
+        background: #fff1f1;
+        border-color: #f0caca;
+    }
+
+    .fu-action.btn-outline-success {
+        border-color: #bfe4cc;
+        color: #198754;
+    }
+
+    .fu-action.btn-outline-success:hover {
+        background: #edf8f1;
+        border-color: #bfe4cc;
     }
 
     /* =========================================================
@@ -740,9 +851,9 @@
     ========================================================= */
 
     .fu-pagination {
-        padding: 17px 24px;
+        padding: 14px 18px;
         border-top: 1px solid #edf0f5;
-        background: #ffffff;
+        background: #fcfdfe;
     }
 
     .fu-pagination-info {
@@ -757,6 +868,111 @@
 
     .fu-pagination .pagination {
         margin-bottom: 0;
+        gap: 3px;
+        align-items: center;
+    }
+
+    .fu-pagination .page-link {
+        min-width: 30px;
+        height: 30px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #dfe5ec;
+        border-radius: 7px;
+        color: #667085;
+        font-size: 10px;
+        padding: 0 8px;
+        box-shadow: none;
+    }
+
+    .fu-pagination .page-link:hover {
+        border-color: #cfe0f8;
+        background: #f3f7fc;
+        color: #2f80ed;
+    }
+
+    .fu-pagination .page-item.active .page-link {
+        border-color: #2f80ed;
+        background: #2f80ed;
+        color: #ffffff;
+        box-shadow: 0 3px 8px rgba(47, 128, 237, 0.16);
+    }
+
+    .fu-pagination .page-item.disabled .page-link {
+        border-color: #e8edf4;
+        background: #f8fafc;
+        color: #adb5c0;
+        cursor: not-allowed;
+    }
+
+    .fu-pagination svg {
+        width: 13px;
+        height: 13px;
+    }
+
+    .department-table-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        padding: 14px 18px;
+        border-top: 1px solid #edf0f4;
+        background: #fcfdfe;
+    }
+
+    .department-record-count {
+        color: #8b96a8;
+        font-size: 10px;
+    }
+
+    .department-record-count strong {
+        color: #475467;
+    }
+
+    .department-pagination .pagination {
+        margin: 0;
+        display: flex;
+        gap: 3px;
+    }
+
+    .department-pagination .page-link {
+        min-width: 30px;
+        height: 30px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 8px;
+        border: 1px solid #dfe5ec;
+        border-radius: 7px !important;
+        background: #ffffff;
+        color: #667085;
+        font-size: 10px;
+        box-shadow: none;
+    }
+
+    .department-pagination .page-link:hover {
+        background: #f3f7fc;
+        border-color: #cfe0f8;
+        color: #2f80ed;
+    }
+
+    .department-pagination .page-item.active .page-link {
+        background: #2f80ed;
+        border-color: #2f80ed;
+        color: #ffffff;
+        box-shadow: 0 3px 8px rgba(47, 128, 237, 0.16);
+    }
+
+    .department-pagination .page-item.disabled .page-link {
+        background: #f7f9fb;
+        border-color: #e8ebef;
+        color: #b5bdc8;
+    }
+
+    .department-pagination svg {
+        width: 13px;
+        height: 13px;
     }
 
     /* =========================================================
@@ -1300,7 +1516,12 @@
 
 
             {{-- TOOLBAR --}}
-            <div class="fu-toolbar">
+            <form
+                class="fu-toolbar"
+                method="GET"
+                action="{{ route('admin.function-units.index') }}"
+                id="functionUnitFilterForm"
+            >
 
                 {{-- SEARCH --}}
                 <div class="fu-search-box">
@@ -1310,9 +1531,12 @@
                     <input
                         type="text"
                         id="functionUnitSearch"
+                        name="search"
                         class="form-control fu-search-input"
                         placeholder="Search function units..."
                         autocomplete="off"
+                        maxlength="100"
+                        value="{{ request('search') }}"
                     >
 
                 </div>
@@ -1321,18 +1545,19 @@
                 {{-- STATUS --}}
                 <select
                     id="functionUnitStatus"
+                    name="status"
                     class="form-select fu-status-filter"
                 >
 
-                    <option value="all">
+                    <option value="all" @selected(request('status', 'all') === 'all')>
                         All Status
                     </option>
 
-                    <option value="active">
+                    <option value="active" @selected(request('status') === 'active')>
                         Active
                     </option>
 
-                    <option value="inactive">
+                    <option value="inactive" @selected(request('status') === 'inactive')>
                         Inactive
                     </option>
 
@@ -1341,7 +1566,7 @@
 
                 {{-- RESET --}}
                 <button
-                    type="button"
+                    type="reset"
                     id="resetFunctionUnitFilters"
                     class="btn fu-reset-btn"
                 >
@@ -1349,7 +1574,7 @@
                     Reset
                 </button>
 
-            </div>
+            </form>
 
         </div>
 
@@ -1392,7 +1617,7 @@
                             Status
                         </th>
 
-                        <th class="text-end">
+                        <th class="text-end" style="width:150px;">
                             Actions
                         </th>
 
@@ -1542,12 +1767,12 @@
                         {{-- ACTIONS --}}
                         <td>
 
-                            <div class="fu-action-group">
+                            <div class="department-actions fu-action-group">
 
                                 {{-- VIEW --}}
                                 <a
                                     href="{{ route('admin.function-units.show', $functionUnit) }}"
-                                    class="btn btn-outline-primary fu-action"
+                                    class="department-action department-action-view fu-action"
                                     title="View Function Unit"
                                 >
                                     <i class="bi bi-eye"></i>
@@ -1559,7 +1784,7 @@
 
                                     <a
                                         href="{{ route('admin.function-units.edit', $functionUnit) }}"
-                                        class="btn btn-outline-secondary fu-action"
+                                        class="department-action department-action-edit fu-action"
                                         title="Edit Function Unit"
                                     >
                                         <i class="bi bi-pencil"></i>
@@ -1569,7 +1794,7 @@
 
                                     <button
                                         type="button"
-                                        class="btn btn-outline-secondary fu-action fu-disabled-action"
+                                        class="department-action department-action-edit fu-action fu-disabled-action"
                                         onclick="functionUnitReadOnlyMessage()"
                                         title="Only Super Admin can edit Function Units."
                                     >
@@ -1597,10 +1822,10 @@
 
                                             <button
                                                 type="submit"
-                                                class="btn btn-outline-danger fu-action"
+                                                class="department-action department-action-delete fu-action"
                                                 title="Deactivate Function Unit"
                                             >
-                                                <i class="bi bi-archive"></i>
+                                                <i class="bi bi-trash3"></i>
                                             </button>
 
                                         </form>
@@ -1609,11 +1834,11 @@
 
                                         <button
                                             type="button"
-                                            class="btn btn-outline-danger fu-action fu-disabled-action"
+                                            class="department-action department-action-delete fu-action fu-disabled-action"
                                             onclick="functionUnitReadOnlyMessage()"
                                             title="Only Super Admin can deactivate Function Units."
                                         >
-                                            <i class="bi bi-archive"></i>
+                                            <i class="bi bi-trash3"></i>
                                         </button>
 
                                     @endif
@@ -1730,38 +1955,39 @@
         {{-- =================================================
              PAGINATION
         ================================================== --}}
-        <div class="fu-pagination">
+        <div class="department-table-footer">
 
-            <div class="d-flex justify-content-between
-                        align-items-center flex-wrap gap-3">
+            <div class="department-record-count">
 
-                <div class="fu-pagination-info">
+                Showing
 
-                    Showing
+                <strong>
+                    {{ $functionUnits->firstItem() }}
+                </strong>
 
-                    <strong>
-                        {{ $functionUnits->firstItem() }}
-                    </strong>
+                –
 
-                    to
+                <strong>
+                    {{ $functionUnits->lastItem() }}
+                </strong>
 
-                    <strong>
-                        {{ $functionUnits->lastItem() }}
-                    </strong>
+                of
 
-                    of
+                <strong>
+                    {{ $functionUnits->total() }}
+                </strong>
 
-                    <strong>
-                        {{ $functionUnits->total() }}
-                    </strong>
+                function units
 
-                    function units
+            </div>
 
-                </div>
+            <div class="department-pagination">
 
-                <div>
-                    {{ $functionUnits->links() }}
-                </div>
+                {{
+                    $functionUnits
+                        ->onEachSide(1)
+                        ->links('pagination::bootstrap-5')
+                }}
 
             </div>
 
@@ -1840,89 +2066,26 @@ document.addEventListener('DOMContentLoaded', function () {
     const resetButton =
         document.getElementById('resetFunctionUnitFilters');
 
-    const table =
-        document.getElementById('functionUnitsTable');
-
-    const noResults =
-        document.getElementById('noSearchResults');
+    const filterForm =
+        document.getElementById('functionUnitFilterForm');
 
 
-    if (!searchInput || !statusFilter || !table) {
+    if (!searchInput || !statusFilter || !filterForm) {
         return;
     }
 
+    let searchTimer;
 
-    function filterFunctionUnits() {
+    searchInput.addEventListener('input', function () {
+        window.clearTimeout(searchTimer);
+        searchTimer = window.setTimeout(function () {
+            filterForm.submit();
+        }, 400);
+    });
 
-        const searchValue =
-            searchInput.value
-                .trim()
-                .toLowerCase();
-
-        const selectedStatus =
-            statusFilter.value;
-
-        const rows =
-            table.querySelectorAll('tbody tr');
-
-        let visibleRows = 0;
-
-
-        rows.forEach(function (row) {
-
-            const rowText =
-                row.textContent.toLowerCase();
-
-            const rowStatus =
-                row.dataset.status || '';
-
-
-            const matchesSearch =
-                searchValue === '' ||
-                rowText.includes(searchValue);
-
-
-            const matchesStatus =
-                selectedStatus === 'all' ||
-                rowStatus === selectedStatus;
-
-
-            if (matchesSearch && matchesStatus) {
-
-                row.style.display = '';
-                visibleRows++;
-
-            } else {
-
-                row.style.display = 'none';
-
-            }
-
-        });
-
-
-        if (noResults) {
-
-            noResults.style.display =
-                visibleRows === 0
-                    ? 'block'
-                    : 'none';
-
-        }
-
-    }
-
-
-    searchInput.addEventListener(
-        'input',
-        filterFunctionUnits
-    );
-
-
-    statusFilter.addEventListener(
-        'change',
-        filterFunctionUnits
-    );
+    statusFilter.addEventListener('change', function () {
+        filterForm.submit();
+    });
 
 
     if (resetButton) {
@@ -1930,14 +2093,7 @@ document.addEventListener('DOMContentLoaded', function () {
         resetButton.addEventListener(
             'click',
             function () {
-
-                searchInput.value = '';
-                statusFilter.value = 'all';
-
-                filterFunctionUnits();
-
-                searchInput.focus();
-
+                window.location.href = filterForm.action;
             }
         );
 
