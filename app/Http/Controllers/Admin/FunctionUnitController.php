@@ -16,11 +16,45 @@ class FunctionUnitController extends Controller
      *
      * All authenticated roles can view Function Units.
      */
-    public function index()
+    public function index(Request $request)
     {
+        $validated = $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+            'status' => ['nullable', 'in:all,active,inactive'],
+        ]);
+
+        $search = trim((string) ($validated['search'] ?? ''));
+        $status = $validated['status'] ?? 'all';
+
         $functionUnits = FunctionUnit::with('department')
+            ->when(
+                $search !== '',
+                function ($query) use ($search) {
+                    $searchTerm = '%' . $search . '%';
+
+                    $query->where(function ($searchQuery) use ($searchTerm) {
+                        $searchQuery
+                            ->where('name', 'like', $searchTerm)
+                            ->orWhere('code', 'like', $searchTerm)
+                            ->orWhereHas(
+                                'department',
+                                fn ($departmentQuery) => $departmentQuery
+                                    ->where('name', 'like', $searchTerm)
+                            );
+                    });
+                }
+            )
+            ->when(
+                $status === 'active',
+                fn ($query) => $query->where('is_active', true)
+            )
+            ->when(
+                $status === 'inactive',
+                fn ($query) => $query->where('is_active', false)
+            )
             ->latest()
-            ->paginate(10);
+            ->paginate(10)
+            ->withQueryString();
 
         return view(
             'admin.function-units.index',
