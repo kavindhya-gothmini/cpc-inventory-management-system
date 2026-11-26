@@ -997,41 +997,9 @@ $isEmployee = $currentUser
         @endif
 
         @if(!$isEmployee)
-        {{-- =================================================
-             ORGANIZATION
-        ================================================== --}}
-
         <div class="sidebar-section-title">
-            Organization
+            User Management
         </div>
-
-
-        {{-- =================================================
-             EMPLOYEES
-             ALL ROLES
-        ================================================== --}}
-
-        @if(Route::has('admin.employees.index'))
-
-            <a
-                href="{{ route('admin.employees.index') }}"
-                class="sidebar-link
-                    {{
-                        request()->routeIs('admin.employees.*')
-                            ? 'active'
-                            : ''
-                    }}"
-            >
-
-                <i class="bi bi-people"></i>
-
-                <span>
-                    Employees
-                </span>
-
-            </a>
-
-        @endif
 
 
         {{-- =================================================
@@ -1051,6 +1019,7 @@ $isEmployee = $currentUser
                     class="sidebar-link
                         {{
                             request()->routeIs('admin.users.*')
+                                || request()->routeIs('admin.employees.*')
                                 ? 'active'
                                 : ''
                         }}"
@@ -1083,6 +1052,11 @@ $isEmployee = $currentUser
             @endif
 
         @endif
+
+
+        <div class="sidebar-section-title">
+            Organization
+        </div>
 
 
         {{-- =================================================

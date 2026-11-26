@@ -547,8 +547,8 @@
 
                 <i class="bi bi-chevron-right"></i>
 
-                <a href="{{ route('admin.employees.index') }}">
-                    Employees
+                <a href="{{ route('admin.users.index') }}">
+                    User Account Management
                 </a>
 
                 <i class="bi bi-chevron-right"></i>
@@ -571,11 +571,11 @@
         <div class="header-actions">
 
             <a
-                href="{{ route('admin.employees.index') }}"
+                href="{{ route('admin.users.index') }}"
                 class="btn btn-light"
             >
                 <i class="bi bi-arrow-left me-1"></i>
-                Employee Directory
+                User Account Management
             </a>
 
             <a

@@ -33,9 +33,19 @@ class UserController extends Controller
             ->latest()
             ->paginate(15);
 
+        $employees = Employee::with([
+            'branch',
+            'department',
+            'functionUnit',
+            'user',
+        ])
+            ->latest()
+            ->paginate(15, ['*'], 'employees_page')
+            ->withQueryString();
+
         return view(
             'admin.users.index',
-            compact('users')
+            compact('users', 'employees')
         );
     }
 
