@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'User Accounts | CPC Inventory Management System')
+@section('title', 'User Management | CPC Inventory Management System')
 
 @section('content')
 
@@ -934,7 +934,7 @@ $lockedUsers = $users->getCollection()->where('is_locked', true)->count();
 
         <h2>
             <i class="bi bi-person-lock"></i>
-            <span>User Accounts</span>
+            <span>User Management</span>
         </h2>
 
         <p>
@@ -2021,6 +2021,85 @@ $lockedUsers = $users->getCollection()->where('is_locked', true)->count();
 
 </div>
 
+<section class="card border-0 shadow-sm mt-4">
+    <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2 py-3">
+        <div>
+            <h3 class="h5 mb-1">Employee Records</h3>
+            <p class="text-muted small mb-0">
+                {{ $employees->total() }} employee record(s), including linked login-account status.
+            </p>
+        </div>
+        <a href="{{ route('admin.employees.create') }}" class="btn btn-primary">
+            <i class="bi bi-person-plus"></i>
+            Register Employee
+        </a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>#</th>
+                    <th>Employee</th>
+                    <th>Designation</th>
+                    <th>Branch</th>
+                    <th>Department</th>
+                    <th>Login Account</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse ($employees as $employee)
+                    <tr>
+                        <td>{{ $employees->firstItem() + $loop->index }}</td>
+                        <td>
+                            <strong>{{ $employee->name }}</strong>
+                            <div class="small text-muted">EPF: {{ $employee->epf_no }}</div>
+                        </td>
+                        <td>{{ $employee->designation ?: '—' }}</td>
+                        <td>{{ $employee->branch?->name ?? 'Not assigned' }}</td>
+                        <td>{{ $employee->department?->name ?? 'Not assigned' }}</td>
+                        <td>
+                            @if ($employee->user)
+                                <span class="badge bg-success">Created</span>
+                            @else
+                                <span class="badge bg-secondary">No account</span>
+                            @endif
+                        </td>
+                        <td>
+                            <div class="d-flex gap-2">
+                                <a
+                                    href="{{ route('admin.employees.show', $employee) }}"
+                                    class="btn btn-sm btn-outline-primary"
+                                >
+                                    View
+                                </a>
+                                <a
+                                    href="{{ route('admin.employees.edit', $employee) }}"
+                                    class="btn btn-sm btn-outline-secondary"
+                                >
+                                    Edit
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            No employee records found.
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+
+    @if ($employees->hasPages())
+        <div class="card-footer bg-white">
+            {{ $employees->links() }}
+        </div>
+    @endif
+</section>
 
 </div>
 
